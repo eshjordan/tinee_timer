@@ -1,0 +1,17 @@
+dependencies:
+  button:
+    public: true
+    version: ^4
+  idf: '>=5.2'
+  led_indicator:
+    public: true
+    version: ^1
+description: DevKit Board Support Package (BSP)
+repository: git://github.com/espressif/esp-bsp.git
+repository_info:
+  commit_sha: bc1db2fd5a9e7a41dba46f4c1322ac072e32419b
+  path: bsp/esp_bsp_devkit
+tags:
+- bsp
+url: https://github.com/espressif/esp-bsp/tree/master/bsp/esp_bsp_devkit
+version: 3.0.0
