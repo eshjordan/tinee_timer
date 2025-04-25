@@ -1,0 +1,16 @@
+{
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "idf.espIdfPath": "/home/jordan/esp/v5.4.1/esp-idf",
+    "idf.pythonInstallPath": "/usr/bin/python3",
+    "idf.openOcdConfigs": [
+        "board/esp32-bridge.cfg"
+    ],
+    "idf.port": "/dev/ttyUSB0",
+    "idf.toolsPath": "/home/jordan/.espressif",
+    "idf.flashType": "UART",
+    "idf.customExtraVars": {
+        "OPENOCD_SCRIPTS": "/home/jordan/.espressif/tools/openocd-esp32/v0.12.0-esp32-20240318/openocd-esp32/share/openocd/scripts",
+        "ESP_ROM_ELF_DIR": "/home/jordan/.espressif/tools/esp-rom-elfs/20240305/",
+        "IDF_TARGET": "esp32"
+    }
+}

@@ -1,0 +1,21 @@
+dependencies:
+  idf:
+    source:
+      type: idf
+    version: 5.4.1
+  petrows/esp-32-tm1637:
+    component_hash: 60ca05486f3f8d160593c40f13fd67f85d9b9a15b2a888e7456343743d529674
+    dependencies:
+    - name: idf
+      version: '>=4.0'
+    source:
+      git: https://github.com/petrows/esp-32-tm1637.git
+      path: .
+      type: git
+    version: e1595310808ddb96ea859ddf028f21745b74642b
+direct_dependencies:
+- idf
+- petrows/esp-32-tm1637
+manifest_hash: 28bbe0ad236063c3ac6d4fd2a9a20dd350234189a3eda128b967e37657c1fd08
+target: esp32
+version: 2.0.0
