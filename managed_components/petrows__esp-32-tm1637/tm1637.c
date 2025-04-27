@@ -101,8 +101,8 @@ void tm1637_send_byte(tm1637_led_t * led, uint8_t byte)
     // CLK after sending the 8th bit, to the next falling edge of CLK.
     // DIO needs to be set as input during this time to avoid having both
     // chips trying to drive DIO at the same time.
-    gpio_reset_pin(pin_clk);
-    gpio_reset_pin(pin_data);
+    gpio_reset_pin(led->m_pin_clk);
+    gpio_reset_pin(led->m_pin_dta);
     gpio_set_direction(led->m_pin_dta, GPIO_MODE_INPUT);
     gpio_set_level(led->m_pin_clk, 0); // TM1637 starts ACK (pulls DIO low)
     tm1637_delay();
@@ -224,7 +224,7 @@ void tm1637_set_float(tm1637_led_t * led, float n) {
         else if( n < 100 ) {
             fx_part *= 100;
             uint8_t f = ((int)fx_part % 10);
-            
+
             tm1637_set_segment_number(led, 1, (int_part/10) % 10, 0 );
             tm1637_set_segment_number(led, 2, int_part % 10, 1 );
             tm1637_set_segment_number(led, 3, ((int)fx_part/10) % 10 + ((f > 4)?1:0), 0 );
@@ -243,7 +243,7 @@ void tm1637_set_float(tm1637_led_t * led, float n) {
             n = nearestf(n,1);
             int_part = (int)n;
             fx_part = 10000 * (n - int_part);
-            
+
             tm1637_set_segment_number(led, 0, int_part, 1);
             tm1637_set_segment_number(led, 1, ((int)fx_part/1000) % 10, 0 );
             tm1637_set_segment_number(led, 2, ((int)fx_part/100) % 10, 0 );
@@ -253,7 +253,7 @@ void tm1637_set_float(tm1637_led_t * led, float n) {
             n = nearestf(n,2);
             int_part = (int)n;
             fx_part = 1000 * (n - int_part);
-            
+
             tm1637_set_segment_number(led, 0, (int_part/10) % 10, 0);
             tm1637_set_segment_number(led, 1, int_part % 10, 1 );
             tm1637_set_segment_number(led, 2, ((int)fx_part/100) % 10, 0 );
@@ -263,7 +263,7 @@ void tm1637_set_float(tm1637_led_t * led, float n) {
             n = nearestf(n,2);
             int_part = (int)n;
             fx_part = 100 * (n - int_part);
-            
+
             tm1637_set_segment_number(led, 0, (int_part/100) % 10, 0);
             tm1637_set_segment_number(led, 1, (int_part/10) % 10, 0 );
             tm1637_set_segment_number(led, 2, int_part % 10, 1 );

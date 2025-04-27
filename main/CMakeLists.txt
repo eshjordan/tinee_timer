@@ -1,2 +1,11 @@
-idf_component_register(SRCS "real_time_stats_example_main.c"
-                    INCLUDE_DIRS ".")
+idf_component_register(
+    SRCS
+        "main.c"
+        "on_entry_state_transitions.c"
+        "on_exit_state_transitions.c"
+        "state_tasks.c"
+        "statemachine.c"
+    INCLUDE_DIRS
+        "."
+        "include"
+)
