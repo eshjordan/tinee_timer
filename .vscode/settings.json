@@ -5,7 +5,7 @@
     "idf.openOcdConfigs": [
         "board/esp32-bridge.cfg"
     ],
-    "idf.port": "/dev/ttyUSB0",
+    "idf.port": "/dev/ttyACM1",
     "idf.toolsPath": "/home/jordan/.espressif",
     "idf.flashType": "UART",
     "idf.customExtraVars": {

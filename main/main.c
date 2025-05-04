@@ -14,14 +14,21 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "bsp/esp-bsp.h"
 #include "esp_err.h"
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
+#include "iot_button.h"
 #include "sdkconfig.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+static button_handle_t btn_array[BSP_BUTTON_NUM];
+
+void io_init(void);
 
 void app_main(void) {
   // Allow other core to finish initialization
@@ -41,4 +48,22 @@ void app_main(void) {
   // //Create and start stats task
   // xTaskCreatePinnedToCore(stats_task, "stats", 4096, NULL, STATS_TASK_PRIO,
   // NULL, tskNO_AFFINITY); xSemaphoreGive(sync_stats_task);
+}
+
+static void btn_handler(void *button_handle, void *usr_data)
+{
+    int button_pressed = (int)usr_data;
+
+    ESP_LOGI("TAG", "Button pressed: %d", button_pressed);
+}
+
+void io_init(void) {
+  const uint8_t num_btns = (sizeof(btn_array) / sizeof(btn_array[0]));
+  bsp_iot_button_create(btn_array, NULL, num_btns);
+
+  for (int i = 0; i < num_btns; i++) {
+
+    ESP_ERROR_CHECK(iot_button_register_cb(btn_array[i], BUTTON_PRESS_DOWN,
+                                           btn_handler, (void *)i));
+  }
 }
