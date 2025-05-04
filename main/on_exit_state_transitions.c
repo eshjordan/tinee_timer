@@ -14,16 +14,25 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "freertos/FreeRTOS.h"
+
 #include "config.h"
 #include "driver/gptimer.h"
-#include "freertos/FreeRTOS.h"
+#include "esp_log.h"
+#include "esp_private/log_timestamp.h"
 #include "statemachine.h"
 
+static const char *TAG = "ON EXIT";
+
 void on_exit_state_none(state_t new_state) {
+  ESP_DRAM_LOGI(TAG, "State: NONE");
+
   // Do nothing
 }
 
 void on_exit_state_working(state_t new_state) {
+  ESP_DRAM_LOGI(TAG, "State: WORKING");
+
   if (new_state == STATE_PAUSED_WORKING) {
     // Pause working timer
     ESP_ERROR_CHECK(gptimer_stop(config_work.timer_handle));
@@ -37,6 +46,8 @@ void on_exit_state_working(state_t new_state) {
 }
 
 void on_exit_state_resting(state_t new_state) {
+  ESP_DRAM_LOGI(TAG, "State: RESTING");
+
   if (new_state == STATE_PAUSED_RESTING) {
     // Pause resting timer
     ESP_ERROR_CHECK(gptimer_stop(config_rest.timer_handle));
@@ -50,6 +61,8 @@ void on_exit_state_resting(state_t new_state) {
 }
 
 void on_exit_state_paused_working(state_t new_state) {
+  ESP_DRAM_LOGI(TAG, "State: PAUSED WORKING");
+
   if (new_state == STATE_WORKING) {
     // Do nothing
   } else if (new_state == STATE_RESET) {
@@ -62,6 +75,8 @@ void on_exit_state_paused_working(state_t new_state) {
 }
 
 void on_exit_state_paused_resting(state_t new_state) {
+  ESP_DRAM_LOGI(TAG, "State: PAUSED RESTING");
+
   if (new_state == STATE_RESTING) {
     // Do nothing
   } else if (new_state == STATE_RESET) {
@@ -74,6 +89,8 @@ void on_exit_state_paused_resting(state_t new_state) {
 }
 
 void on_exit_state_finished_working(state_t new_state) {
+  ESP_DRAM_LOGI(TAG, "State: FINISHED WORKING");
+
   if (new_state == STATE_RESTING || new_state == STATE_RESET) {
     // Stop alarm, stop 5s timer
     ESP_ERROR_CHECK(gptimer_stop(config_finished_working.timer_handle));
@@ -84,6 +101,8 @@ void on_exit_state_finished_working(state_t new_state) {
 }
 
 void on_exit_state_finished_resting(state_t new_state) {
+  ESP_DRAM_LOGI(TAG, "State: FINISHED RESTING");
+
   if (new_state == STATE_WORKING || new_state == STATE_RESET) {
     // Stop alarm, stop 5s timer
     ESP_ERROR_CHECK(gptimer_stop(config_finished_resting.timer_handle));
@@ -94,13 +113,19 @@ void on_exit_state_finished_resting(state_t new_state) {
 }
 
 void on_exit_state_set_working(state_t new_state) {
+  ESP_DRAM_LOGI(TAG, "State: SET WORKING");
+
   // Do nothing
 }
 
 void on_exit_state_set_resting(state_t new_state) {
+  ESP_DRAM_LOGI(TAG, "State: SET RESTING");
+
   // Do nothing
 }
 
 void on_exit_state_reset(state_t new_state) {
+  ESP_DRAM_LOGI(TAG, "State: RESET");
+
   // Do nothing
 }

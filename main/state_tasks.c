@@ -14,13 +14,17 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "freertos/FreeRTOS.h"
+
 #include "config.h"
 #include "driver/gptimer.h"
 #include "esp_err.h"
-#include "freertos/FreeRTOS.h"
 #include "freertos/idf_additions.h"
 #include "statemachine.h"
+#include "wrapper_7seg.h"
 #include <stdint.h>
+
+static const char *TAG = "STATE TASKS";
 
 static uint16_t get_remaining_minutes(gptimer_handle_t timer) {
   uint32_t resolution = 0;
@@ -45,9 +49,7 @@ void task_state_none(void *pvParameters) {
     // Display working timer config duration (in minutes) on 7-segment display
     uint16_t minutes = config_work.timer_duration.tv_sec / 60;
 
-    vTaskSuspendAll();
-    tm1637_set_number(config_7seg, minutes);
-    xTaskResumeAll();
+    set_number_7seg(minutes);
 
     vTaskSuspend(NULL);
   }
@@ -59,9 +61,7 @@ void task_state_working(void *pvParameters) {
     uint16_t remaining_minutes =
         get_remaining_minutes(config_work.timer_handle);
 
-    vTaskSuspendAll();
-    tm1637_set_number(config_7seg, remaining_minutes);
-    xTaskResumeAll();
+    set_number_7seg(remaining_minutes);
 
     vTaskDelay(pdMS_TO_TICKS(10));
   }
@@ -73,9 +73,7 @@ void task_state_resting(void *pvParameters) {
     uint16_t remaining_minutes =
         get_remaining_minutes(config_rest.timer_handle);
 
-    vTaskSuspendAll();
-    tm1637_set_number(config_7seg, remaining_minutes);
-    xTaskResumeAll();
+    set_number_7seg(remaining_minutes);
 
     vTaskDelay(pdMS_TO_TICKS(10));
   }
@@ -87,18 +85,14 @@ void task_state_paused_working(void *pvParameters) {
     uint16_t remaining_minutes =
         get_remaining_minutes(config_work.timer_handle);
 
-    vTaskSuspendAll();
-    tm1637_set_number(config_7seg, remaining_minutes);
-    xTaskResumeAll();
+    set_number_7seg(remaining_minutes);
 
     vTaskDelay(pdMS_TO_TICKS(500));
 
-    vTaskSuspendAll();
-    tm1637_set_segment_raw(config_7seg, 0, 0x00);
-    tm1637_set_segment_raw(config_7seg, 1, 0x00);
-    tm1637_set_segment_raw(config_7seg, 2, 0x00);
-    tm1637_set_segment_raw(config_7seg, 3, 0x00);
-    xTaskResumeAll();
+    set_segment_raw_7seg(0, 0x00);
+    set_segment_raw_7seg(1, 0x00);
+    set_segment_raw_7seg(2, 0x00);
+    set_segment_raw_7seg(3, 0x00);
 
     vTaskDelay(pdMS_TO_TICKS(500));
   }
@@ -110,18 +104,14 @@ void task_state_paused_resting(void *pvParameters) {
     uint16_t remaining_minutes =
         get_remaining_minutes(config_rest.timer_handle);
 
-    vTaskSuspendAll();
-    tm1637_set_number(config_7seg, remaining_minutes);
-    xTaskResumeAll();
+    set_number_7seg(remaining_minutes);
 
     vTaskDelay(pdMS_TO_TICKS(500));
 
-    vTaskSuspendAll();
-    tm1637_set_segment_raw(config_7seg, 0, 0x00);
-    tm1637_set_segment_raw(config_7seg, 1, 0x00);
-    tm1637_set_segment_raw(config_7seg, 2, 0x00);
-    tm1637_set_segment_raw(config_7seg, 3, 0x00);
-    xTaskResumeAll();
+    set_segment_raw_7seg(0, 0x00);
+    set_segment_raw_7seg(1, 0x00);
+    set_segment_raw_7seg(2, 0x00);
+    set_segment_raw_7seg(3, 0x00);
 
     vTaskDelay(pdMS_TO_TICKS(500));
   }
@@ -130,9 +120,7 @@ void task_state_paused_resting(void *pvParameters) {
 void task_state_finished_working(void *pvParameters) {
   for (;;) {
     // Show 0 on 7-segment display
-    vTaskSuspendAll();
-    tm1637_set_number(config_7seg, 0);
-    xTaskResumeAll();
+    set_number_7seg(0);
 
     // Beep buzzer
 
@@ -143,9 +131,7 @@ void task_state_finished_working(void *pvParameters) {
 void task_state_finished_resting(void *pvParameters) {
   for (;;) {
     // Show 0 on 7-segment display
-    vTaskSuspendAll();
-    tm1637_set_number(config_7seg, 0);
-    xTaskResumeAll();
+    set_number_7seg(0);
 
     // Beep buzzer
 
@@ -169,9 +155,7 @@ void task_state_set_working(void *pvParameters) {
       counter = dot_flash_period_ms / loop_period_ms;
     }
 
-    vTaskSuspendAll();
-    tm1637_set_number_lead_dot(config_7seg, minutes, true, 0b0001 & show_dot);
-    xTaskResumeAll();
+    set_number_lead_dot_7seg(minutes, true, 0b0001 & show_dot);
 
     counter--;
 
@@ -195,9 +179,7 @@ void task_state_set_resting(void *pvParameters) {
       counter = dot_flash_period_ms / loop_period_ms;
     }
 
-    vTaskSuspendAll();
-    tm1637_set_number_lead_dot(config_7seg, minutes, true, 0b0001 & show_dot);
-    xTaskResumeAll();
+    set_number_lead_dot_7seg(minutes, true, 0b0001 & show_dot);
 
     counter--;
 
@@ -207,7 +189,8 @@ void task_state_set_resting(void *pvParameters) {
 
 void task_state_reset(void *pvParameters) {
   for (;;) {
-    // Do nothing, immediately transition to STATE_NONE (suspends this task)
+    // Do nothing, immediately transition to STATE_NONE
     transition_to_state(STATE_NONE);
+    vTaskSuspend(NULL);
   }
 }

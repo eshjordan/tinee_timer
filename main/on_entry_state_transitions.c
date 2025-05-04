@@ -14,13 +14,17 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "freertos/FreeRTOS.h"
+
 #include "config.h"
 #include "driver/gptimer.h"
 #include "driver/gptimer_types.h"
 #include "esp_err.h"
-#include "freertos/FreeRTOS.h"
+#include "esp_log.h"
 #include "statemachine.h"
 #include <time.h>
+
+static const char *TAG = "ON ENTRY";
 
 static void setup_alarm_timer(gptimer_handle_t *timer, struct timespec duration,
                               gptimer_alarm_cb_t alarm_cb) {
@@ -28,7 +32,7 @@ static void setup_alarm_timer(gptimer_handle_t *timer, struct timespec duration,
   gptimer_config_t gptimer_config = {
       .clk_src = GPTIMER_CLK_SRC_DEFAULT,
       .direction = GPTIMER_COUNT_DOWN,
-      .resolution_hz = 1000,
+      .resolution_hz = 8000,
   };
 
   gptimer_alarm_config_t gptimer_alarm_config = {
@@ -62,17 +66,22 @@ static void setup_alarm_timer(gptimer_handle_t *timer, struct timespec duration,
 }
 
 void on_entry_state_none(state_t old_state) {
+  ESP_DRAM_LOGI(TAG, "State: NONE");
+
   // Display working timer value on 7-segment display
 }
 
 static bool work_alarm_cb(gptimer_handle_t timer,
                           const gptimer_alarm_event_data_t *edata,
                           void *user_ctx) {
-  transition_to_state(STATE_FINISHED_WORKING);
-  return true;
+  bool higherPriorityTaskWoken = false;
+  transition_to_state_isr(STATE_FINISHED_WORKING, &higherPriorityTaskWoken);
+  return higherPriorityTaskWoken;
 }
 
 void on_entry_state_working(state_t old_state) {
+  ESP_DRAM_LOGI(TAG, "State: WORKING");
+
   if (old_state == STATE_NONE || old_state == STATE_FINISHED_RESTING) {
     // Start working timer
     setup_alarm_timer(&config_work.timer_handle, config_work.timer_duration,
@@ -87,11 +96,14 @@ void on_entry_state_working(state_t old_state) {
 static bool rest_alarm_cb(gptimer_handle_t timer,
                           const gptimer_alarm_event_data_t *edata,
                           void *user_ctx) {
-  transition_to_state(STATE_FINISHED_RESTING);
-  return true;
+  bool higherPriorityTaskWoken = false;
+  transition_to_state_isr(STATE_FINISHED_RESTING, &higherPriorityTaskWoken);
+  return higherPriorityTaskWoken;
 }
 
 void on_entry_state_resting(state_t old_state) {
+  ESP_DRAM_LOGI(TAG, "State: RESTING");
+
   if (old_state == STATE_FINISHED_WORKING) {
     // Start resting timer
     setup_alarm_timer(&config_rest.timer_handle, config_rest.timer_duration,
@@ -104,42 +116,65 @@ void on_entry_state_resting(state_t old_state) {
 }
 
 void on_entry_state_paused_working(state_t old_state) {
+  ESP_DRAM_LOGI(TAG, "State: PAUSED WORKING");
+
   // Do nothing
 }
 
 void on_entry_state_paused_resting(state_t old_state) {
+  ESP_DRAM_LOGI(TAG, "State: PAUSED RESTING");
+
   // Do nothing
 }
 
 static bool finished_working_alarm_cb(gptimer_handle_t timer,
                                       const gptimer_alarm_event_data_t *edata,
                                       void *user_ctx) {
-  transition_to_state(STATE_RESTING);
-  return true;
+  bool higherPriorityTaskWoken = false;
+  transition_to_state_isr(STATE_RESTING, &higherPriorityTaskWoken);
+  return higherPriorityTaskWoken;
 }
 
 void on_entry_state_finished_working(state_t old_state) {
+  ESP_DRAM_LOGI(TAG, "State: FINISHED WORKING");
+
   // Start alarm, start 5s timer
   setup_alarm_timer(&config_finished_working.timer_handle,
                     config_finished_working.timer_duration,
                     finished_working_alarm_cb);
 }
 
+static bool finished_resting_alarm_cb(gptimer_handle_t timer,
+                                      const gptimer_alarm_event_data_t *edata,
+                                      void *user_ctx) {
+  bool higherPriorityTaskWoken = false;
+  transition_to_state_isr(STATE_WORKING, &higherPriorityTaskWoken);
+  return higherPriorityTaskWoken;
+}
+
 void on_entry_state_finished_resting(state_t old_state) {
+  ESP_DRAM_LOGI(TAG, "State: FINISHED RESTING");
+
   // Start alarm, start 5s timer
   setup_alarm_timer(&config_finished_resting.timer_handle,
                     config_finished_resting.timer_duration,
-                    finished_working_alarm_cb);
+                    finished_resting_alarm_cb);
 }
 
 void on_entry_state_set_working(state_t old_state) {
+  ESP_DRAM_LOGI(TAG, "State: SET WORKING");
+
   // Do nothing
 }
 
 void on_entry_state_set_resting(state_t old_state) {
+  ESP_DRAM_LOGI(TAG, "State: SET RESTING");
+
   // Do nothing
 }
 
 void on_entry_state_reset(state_t old_state) {
+  ESP_DRAM_LOGI(TAG, "State: RESET");
+
   // Do nothing
 }

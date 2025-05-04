@@ -16,6 +16,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include "freertos/idf_additions.h"
+#include "iot_button.h"
+#include "portmacro.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -71,38 +74,51 @@ bool can_transition_to_state(state_t new_state);
 
 bool transition_to_state(state_t new_state);
 
-void on_entry_state_none(state_t old_state);
-void on_entry_state_working(state_t old_state);
-void on_entry_state_resting(state_t old_state);
-void on_entry_state_paused_working(state_t old_state);
-void on_entry_state_paused_resting(state_t old_state);
-void on_entry_state_finished_working(state_t old_state);
-void on_entry_state_finished_resting(state_t old_state);
-void on_entry_state_set_working(state_t old_state);
-void on_entry_state_set_resting(state_t old_state);
-void on_entry_state_reset(state_t old_state);
+bool transition_to_state_isr(state_t new_state, bool *higherPriorityTaskWoken);
 
-void task_state_none(void *);
-void task_state_working(void *);
-void task_state_resting(void *);
-void task_state_paused_working(void *);
-void task_state_paused_resting(void *);
-void task_state_finished_working(void *);
-void task_state_finished_resting(void *);
-void task_state_set_working(void *);
-void task_state_set_resting(void *);
-void task_state_reset(void *);
+extern void on_entry_state_none(state_t old_state);
+extern void on_entry_state_working(state_t old_state);
+extern void on_entry_state_resting(state_t old_state);
+extern void on_entry_state_paused_working(state_t old_state);
+extern void on_entry_state_paused_resting(state_t old_state);
+extern void on_entry_state_finished_working(state_t old_state);
+extern void on_entry_state_finished_resting(state_t old_state);
+extern void on_entry_state_set_working(state_t old_state);
+extern void on_entry_state_set_resting(state_t old_state);
+extern void on_entry_state_reset(state_t old_state);
 
-void on_exit_state_none(state_t new_state);
-void on_exit_state_working(state_t new_state);
-void on_exit_state_resting(state_t new_state);
-void on_exit_state_paused_working(state_t new_state);
-void on_exit_state_paused_resting(state_t new_state);
-void on_exit_state_finished_working(state_t new_state);
-void on_exit_state_finished_resting(state_t new_state);
-void on_exit_state_set_working(state_t new_state);
-void on_exit_state_set_resting(state_t new_state);
-void on_exit_state_reset(state_t new_state);
+extern void task_state_none(void *);
+extern void task_state_working(void *);
+extern void task_state_resting(void *);
+extern void task_state_paused_working(void *);
+extern void task_state_paused_resting(void *);
+extern void task_state_finished_working(void *);
+extern void task_state_finished_resting(void *);
+extern void task_state_set_working(void *);
+extern void task_state_set_resting(void *);
+extern void task_state_reset(void *);
+
+extern void on_exit_state_none(state_t new_state);
+extern void on_exit_state_working(state_t new_state);
+extern void on_exit_state_resting(state_t new_state);
+extern void on_exit_state_paused_working(state_t new_state);
+extern void on_exit_state_paused_resting(state_t new_state);
+extern void on_exit_state_finished_working(state_t new_state);
+extern void on_exit_state_finished_resting(state_t new_state);
+extern void on_exit_state_set_working(state_t new_state);
+extern void on_exit_state_set_resting(state_t new_state);
+extern void on_exit_state_reset(state_t new_state);
+
+extern void btn_mode_short_press_func(void *button_handle, void *usr_data);
+extern void btn_mode_long_press_func(void *button_handle, void *usr_data);
+extern void btn_plus_short_press_func(void *button_handle, void *usr_data);
+extern void btn_plus_long_press_func(void *button_handle, void *usr_data);
+extern void btn_minus_short_press_func(void *button_handle, void *usr_data);
+extern void btn_minus_long_press_func(void *button_handle, void *usr_data);
+extern void btn_play_short_press_func(void *button_handle, void *usr_data);
+extern void btn_play_long_press_func(void *button_handle, void *usr_data);
+
+extern TaskHandle_t task_statemachine_handle;
 
 #ifdef __cplusplus
 }

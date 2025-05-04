@@ -14,17 +14,17 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "freertos/FreeRTOS.h"
+
 #include "bsp/esp-bsp.h"
+#include "config.h"
 #include "esp_err.h"
 #include "esp_log.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
-#include "freertos/task.h"
 #include "iot_button.h"
-#include "sdkconfig.h"
-#include <inttypes.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "statemachine.h"
+#include "tm1637.h"
+#include "wrapper_7seg.h"
+#include <stdint.h>
 
 static button_handle_t btn_array[BSP_BUTTON_NUM];
 
@@ -33,6 +33,17 @@ void io_init(void);
 void app_main(void) {
   // Allow other core to finish initialization
   vTaskDelay(pdMS_TO_TICKS(100));
+
+  io_init();
+
+  config_work.timer_duration.tv_sec = 2;
+  config_rest.timer_duration.tv_sec = 2;
+  config_finished_working.timer_duration.tv_sec = 2;
+  config_finished_resting.timer_duration.tv_sec = 2;
+
+  init_statemachine();
+
+  vTaskSuspend(NULL);
 
   // //Create semaphores to synchronize
   // sync_spin_task = xSemaphoreCreateCounting(NUM_OF_SPIN_TASKS, 0);
@@ -50,11 +61,16 @@ void app_main(void) {
   // NULL, tskNO_AFFINITY); xSemaphoreGive(sync_stats_task);
 }
 
-static void btn_handler(void *button_handle, void *usr_data)
-{
-    int button_pressed = (int)usr_data;
+static void btn_single_click_handler(void *button_handle, void *usr_data) {
+  int button_pressed = (int)usr_data;
 
-    ESP_LOGI("TAG", "Button pressed: %d", button_pressed);
+  ESP_LOGI("TAG", "Button pressed: %d", button_pressed);
+}
+
+static void btn_long_press_start_handler(void *button_handle, void *usr_data) {
+  int button_pressed = (int)usr_data;
+
+  ESP_LOGI("TAG", "Button long press start: %d", button_pressed);
 }
 
 void io_init(void) {
@@ -63,7 +79,18 @@ void io_init(void) {
 
   for (int i = 0; i < num_btns; i++) {
 
-    ESP_ERROR_CHECK(iot_button_register_cb(btn_array[i], BUTTON_PRESS_DOWN,
-                                           btn_handler, (void *)i));
+    ESP_ERROR_CHECK(iot_button_register_cb(btn_array[i], BUTTON_SINGLE_CLICK,
+                                           NULL, btn_single_click_handler,
+                                           (void *)i));
+    ESP_ERROR_CHECK(
+        iot_button_register_cb(btn_array[i], BUTTON_LONG_PRESS_START, NULL,
+                               btn_long_press_start_handler, (void *)i));
   }
+
+  config_io.btn_mode = btn_array[BSP_BUTTON_1];
+  config_io.btn_plus = btn_array[BSP_BUTTON_2];
+  config_io.btn_minus = btn_array[BSP_BUTTON_3];
+  config_io.btn_play = btn_array[BSP_BUTTON_4];
+
+  init_7seg();
 }

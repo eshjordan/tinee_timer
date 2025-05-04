@@ -5,12 +5,29 @@
     "idf.openOcdConfigs": [
         "board/esp32-bridge.cfg"
     ],
-    "idf.port": "/dev/ttyACM1",
+    "idf.port": "/dev/ttyUSB0",
     "idf.toolsPath": "/home/jordan/.espressif",
     "idf.flashType": "UART",
     "idf.customExtraVars": {
         "OPENOCD_SCRIPTS": "/home/jordan/.espressif/tools/openocd-esp32/v0.12.0-esp32-20240318/openocd-esp32/share/openocd/scripts",
         "ESP_ROM_ELF_DIR": "/home/jordan/.espressif/tools/esp-rom-elfs/20240305/",
         "IDF_TARGET": "esp32"
-    }
+    },
+    "clangd.arguments": [
+        "--query-driver=/home/jordan/.espressif/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/xtensa-esp32-elf-gcc",
+        "--malloc-trim",
+        "--pch-storage=memory",
+        "-j",
+        "4",
+        "--clang-tidy",
+        "--background-index",
+        "--compile-commands-dir=${workspaceFolder}/build",
+        "--header-insertion-decorators",
+        "--experimental-modules-support",
+        "--compile_args_from=filesystem",
+        "--completion-parse=always",
+        "--completion-style=detailed",
+    ],
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true,
 }

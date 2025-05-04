@@ -16,6 +16,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include "freertos/FreeRTOS.h"
+
+#include "button_types.h"
+#include "esp_log_level.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -23,6 +28,8 @@ extern "C" {
 #include "driver/gptimer_types.h"
 #include "tm1637.h"
 #include <time.h>
+
+extern portMUX_TYPE app_spinlock;
 
 typedef struct {
 } config_none_t;
@@ -72,7 +79,14 @@ typedef struct {
 
 extern config_reset_t config_reset;
 
-extern tm1637_led_t *config_7seg;
+typedef struct {
+  button_handle_t btn_mode;
+  button_handle_t btn_plus;
+  button_handle_t btn_minus;
+  button_handle_t btn_play;
+} config_io_t;
+
+extern config_io_t config_io;
 
 #ifdef __cplusplus
 }

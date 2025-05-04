@@ -14,12 +14,17 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-#include "statemachine.h"
-#include "FreeRTOSConfig.h"
 #include "freertos/FreeRTOS.h"
+
+#include "config.h"
+#include "esp_log.h"
+#include "iot_button.h"
+#include "statemachine.h"
 #include <string.h>
 
 static state_t current_state = STATE_RESET;
+
+TaskHandle_t task_statemachine_handle;
 
 typedef void (*on_entry_func_t)(state_t);
 typedef void (*task_func_t)(void *);
@@ -68,6 +73,8 @@ static on_exit_func_t on_exit_funcs[STATE_MAX] = {
     on_exit_state_reset,
 };
 
+void task_statemachine(void *pvParameters);
+
 void init_statemachine() {
   static bool initialised = false;
   if (initialised) {
@@ -79,6 +86,8 @@ void init_statemachine() {
   current_state = STATE_RESET;
 
   vTaskSuspendAll();
+  xTaskCreate(task_statemachine, "statemachine", 2048, NULL, 1,
+              &task_statemachine_handle);
   for (int i = 0; i < STATE_MAX; i++) {
     char task_name[configMAX_TASK_NAME_LEN] = "";
     snprintf(task_name, configMAX_TASK_NAME_LEN, "%s", get_state_name(i));
@@ -123,11 +132,54 @@ bool can_transition_to_state(state_t new_state) {
   }
 }
 
-bool transition_to_state(state_t new_state) {
-  if (can_transition_to_state(new_state)) {
-    // Enter critical section
-    vTaskSuspendAll();
+static void buttons_register(state_t state) {
+  iot_button_register_cb(config_io.btn_mode, BUTTON_SINGLE_CLICK, NULL,
+                         btn_mode_short_press_func, (void *)state);
+  iot_button_register_cb(config_io.btn_mode, BUTTON_LONG_PRESS_START, NULL,
+                         btn_mode_long_press_func, (void *)state);
+  iot_button_register_cb(config_io.btn_plus, BUTTON_SINGLE_CLICK, NULL,
+                         btn_plus_short_press_func, (void *)state);
+  iot_button_register_cb(config_io.btn_plus, BUTTON_LONG_PRESS_START, NULL,
+                         btn_plus_long_press_func, (void *)state);
+  iot_button_register_cb(config_io.btn_minus, BUTTON_SINGLE_CLICK, NULL,
+                         btn_minus_short_press_func, (void *)state);
+  iot_button_register_cb(config_io.btn_minus, BUTTON_LONG_PRESS_START, NULL,
+                         btn_minus_long_press_func, (void *)state);
+  iot_button_register_cb(config_io.btn_play, BUTTON_SINGLE_CLICK, NULL,
+                         btn_play_short_press_func, (void *)state);
+  iot_button_register_cb(config_io.btn_play, BUTTON_LONG_PRESS_START, NULL,
+                         btn_play_long_press_func, (void *)state);
+}
 
+static void buttons_unregister(state_t state) {
+  iot_button_unregister_cb(config_io.btn_mode, BUTTON_SINGLE_CLICK, NULL);
+  iot_button_unregister_cb(config_io.btn_mode, BUTTON_LONG_PRESS_START, NULL);
+  iot_button_unregister_cb(config_io.btn_plus, BUTTON_SINGLE_CLICK, NULL);
+  iot_button_unregister_cb(config_io.btn_plus, BUTTON_LONG_PRESS_START, NULL);
+  iot_button_unregister_cb(config_io.btn_minus, BUTTON_SINGLE_CLICK, NULL);
+  iot_button_unregister_cb(config_io.btn_minus, BUTTON_LONG_PRESS_START, NULL);
+  iot_button_unregister_cb(config_io.btn_play, BUTTON_SINGLE_CLICK, NULL);
+  iot_button_unregister_cb(config_io.btn_play, BUTTON_LONG_PRESS_START, NULL);
+}
+
+bool transition_to_state(state_t new_state) {
+  return pdPASS == xTaskNotify(task_statemachine_handle, (uint32_t)new_state,
+                               eSetValueWithoutOverwrite);
+}
+
+bool transition_to_state_isr(state_t new_state, bool *higherPriorityTaskWoken) {
+  BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
+  BaseType_t result =
+      xTaskNotifyFromISR(task_statemachine_handle, (uint32_t)new_state,
+                         eSetValueWithoutOverwrite, &pxHigherPriorityTaskWoken);
+  if (NULL != higherPriorityTaskWoken) {
+    *higherPriorityTaskWoken = (pxHigherPriorityTaskWoken == pdTRUE);
+  }
+  return pdPASS == result;
+}
+
+int do_transition_to_state(state_t new_state) {
+  if (can_transition_to_state(new_state)) {
     bool called_by_current_task =
         xTaskGetCurrentTaskHandle() == task_func_handles[current_state];
 
@@ -135,20 +187,28 @@ bool transition_to_state(state_t new_state) {
       vTaskSuspend(task_func_handles[current_state]);
     }
 
-    on_exit_funcs[current_state](new_state);
     state_t old_state = current_state;
+    buttons_unregister(old_state);
+    on_exit_funcs[old_state](new_state);
     current_state = new_state;
-    on_entry_funcs[current_state](old_state);
-    vTaskResume(task_func_handles[current_state]);
-
-    // Exit critical section
-    xTaskResumeAll();
+    on_entry_funcs[new_state](old_state);
+    buttons_register(new_state);
+    vTaskResume(task_func_handles[new_state]);
 
     if (called_by_current_task) {
       vTaskSuspend(NULL);
     }
 
-    return true;
+    return 0;
   }
-  return false;
+  return 1;
+}
+
+void task_statemachine(void *pvParameters) {
+  uint32_t pulNotificationValue;
+  for (;;) {
+    if (pdPASS == xTaskNotifyWait(0, 0, &pulNotificationValue, portMAX_DELAY)) {
+      ESP_ERROR_CHECK(do_transition_to_state((state_t)pulNotificationValue));
+    }
+  }
 }
