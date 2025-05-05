@@ -19,7 +19,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "config.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "iot_button.h"
 #include "statemachine.h"
+
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#define max(a, b) (((a) > (b)) ? (a) : (b))
 
 static const char *TAG = "STATE BUTTONS";
 
@@ -52,9 +56,11 @@ void btn_mode_short_press_func(void *button_handle, void *usr_data) {
     break;
   }
   case STATE_SET_WORKING: {
+    transition_to_state_isr(STATE_SET_RESTING, &yield);
     break;
   }
   case STATE_SET_RESTING: {
+    transition_to_state_isr(STATE_NONE, &yield);
     break;
   }
   case STATE_RESET: {
@@ -77,6 +83,8 @@ void btn_mode_long_press_func(void *button_handle, void *usr_data) {
   bool yield = false;
   switch (state) {
   case STATE_NONE: {
+    config_work.count_direction ^= 1;
+    config_rest.count_direction ^= 1;
     break;
   }
   case STATE_WORKING: {
@@ -98,9 +106,13 @@ void btn_mode_long_press_func(void *button_handle, void *usr_data) {
     break;
   }
   case STATE_SET_WORKING: {
+    config_work.count_direction ^= 1;
+    config_rest.count_direction ^= 1;
     break;
   }
   case STATE_SET_RESTING: {
+    config_work.count_direction ^= 1;
+    config_rest.count_direction ^= 1;
     break;
   }
   case STATE_RESET: {
@@ -144,9 +156,13 @@ void btn_plus_short_press_func(void *button_handle, void *usr_data) {
     break;
   }
   case STATE_SET_WORKING: {
+    config_work.timer_duration.tv_sec =
+        min(config_work.timer_duration.tv_sec + 60, 9999 * 60);
     break;
   }
   case STATE_SET_RESTING: {
+    config_rest.timer_duration.tv_sec =
+        min(config_rest.timer_duration.tv_sec + 60, 9999 * 60);
     break;
   }
   case STATE_RESET: {
@@ -190,9 +206,25 @@ void btn_plus_long_press_func(void *button_handle, void *usr_data) {
     break;
   }
   case STATE_SET_WORKING: {
+    config_work.timer_duration.tv_sec =
+        min(config_work.timer_duration.tv_sec + (10 * 60), 9999 * 60);
+
+    button_event_t btn_minus_event = iot_button_get_event(config_io.btn_minus);
+    if (BUTTON_LONG_PRESS_START == btn_minus_event ||
+        BUTTON_LONG_PRESS_HOLD == btn_minus_event) {
+      config_work.timer_duration.tv_sec = 60;
+    }
     break;
   }
   case STATE_SET_RESTING: {
+    config_rest.timer_duration.tv_sec =
+        min(config_rest.timer_duration.tv_sec + (10 * 60), 9999 * 60);
+
+    button_event_t btn_minus_event = iot_button_get_event(config_io.btn_minus);
+    if (BUTTON_LONG_PRESS_START == btn_minus_event ||
+        BUTTON_LONG_PRESS_HOLD == btn_minus_event) {
+      config_rest.timer_duration.tv_sec = 60;
+    }
     break;
   }
   case STATE_RESET: {
@@ -236,9 +268,13 @@ void btn_minus_short_press_func(void *button_handle, void *usr_data) {
     break;
   }
   case STATE_SET_WORKING: {
+    config_work.timer_duration.tv_sec =
+        max(config_work.timer_duration.tv_sec - 60, 60);
     break;
   }
   case STATE_SET_RESTING: {
+    config_rest.timer_duration.tv_sec =
+        max(config_rest.timer_duration.tv_sec - 60, 60);
     break;
   }
   case STATE_RESET: {
@@ -282,9 +318,25 @@ void btn_minus_long_press_func(void *button_handle, void *usr_data) {
     break;
   }
   case STATE_SET_WORKING: {
+    config_work.timer_duration.tv_sec =
+        max(config_work.timer_duration.tv_sec - (10 * 60), 60);
+
+    button_event_t btn_plus_event = iot_button_get_event(config_io.btn_plus);
+    if (BUTTON_LONG_PRESS_START == btn_plus_event ||
+        BUTTON_LONG_PRESS_HOLD == btn_plus_event) {
+      config_work.timer_duration.tv_sec = 60;
+    }
     break;
   }
   case STATE_SET_RESTING: {
+    config_rest.timer_duration.tv_sec =
+        max(config_rest.timer_duration.tv_sec - (10 * 60), 60);
+
+    button_event_t btn_plus_event = iot_button_get_event(config_io.btn_plus);
+    if (BUTTON_LONG_PRESS_START == btn_plus_event ||
+        BUTTON_LONG_PRESS_HOLD == btn_plus_event) {
+      config_rest.timer_duration.tv_sec = 60;
+    }
     break;
   }
   case STATE_RESET: {
@@ -311,21 +363,27 @@ void btn_play_short_press_func(void *button_handle, void *usr_data) {
     break;
   }
   case STATE_WORKING: {
+    transition_to_state_isr(STATE_PAUSED_WORKING, &yield);
     break;
   }
   case STATE_RESTING: {
+    transition_to_state_isr(STATE_PAUSED_RESTING, &yield);
     break;
   }
   case STATE_PAUSED_WORKING: {
+    transition_to_state_isr(STATE_WORKING, &yield);
     break;
   }
   case STATE_PAUSED_RESTING: {
+    transition_to_state_isr(STATE_RESTING, &yield);
     break;
   }
   case STATE_FINISHED_WORKING: {
+    transition_to_state_isr(STATE_RESTING, &yield);
     break;
   }
   case STATE_FINISHED_RESTING: {
+    transition_to_state_isr(STATE_WORKING, &yield);
     break;
   }
   case STATE_SET_WORKING: {
@@ -358,21 +416,27 @@ void btn_play_long_press_func(void *button_handle, void *usr_data) {
     break;
   }
   case STATE_WORKING: {
+    transition_to_state_isr(STATE_RESET, &yield);
     break;
   }
   case STATE_RESTING: {
+    transition_to_state_isr(STATE_RESET, &yield);
     break;
   }
   case STATE_PAUSED_WORKING: {
+    transition_to_state_isr(STATE_RESET, &yield);
     break;
   }
   case STATE_PAUSED_RESTING: {
+    transition_to_state_isr(STATE_RESET, &yield);
     break;
   }
   case STATE_FINISHED_WORKING: {
+    transition_to_state_isr(STATE_RESET, &yield);
     break;
   }
   case STATE_FINISHED_RESTING: {
+    transition_to_state_isr(STATE_RESET, &yield);
     break;
   }
   case STATE_SET_WORKING: {

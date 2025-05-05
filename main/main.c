@@ -77,16 +77,6 @@ void io_init(void) {
   const uint8_t num_btns = (sizeof(btn_array) / sizeof(btn_array[0]));
   bsp_iot_button_create(btn_array, NULL, num_btns);
 
-  for (int i = 0; i < num_btns; i++) {
-
-    ESP_ERROR_CHECK(iot_button_register_cb(btn_array[i], BUTTON_SINGLE_CLICK,
-                                           NULL, btn_single_click_handler,
-                                           (void *)i));
-    ESP_ERROR_CHECK(
-        iot_button_register_cb(btn_array[i], BUTTON_LONG_PRESS_START, NULL,
-                               btn_long_press_start_handler, (void *)i));
-  }
-
   config_io.btn_mode = btn_array[BSP_BUTTON_1];
   config_io.btn_plus = btn_array[BSP_BUTTON_2];
   config_io.btn_minus = btn_array[BSP_BUTTON_3];

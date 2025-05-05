@@ -22,7 +22,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "statemachine.h"
 #include <string.h>
 
-static state_t current_state = STATE_RESET;
+state_t current_state = STATE_RESET;
 
 TaskHandle_t task_statemachine_handle;
 
@@ -102,7 +102,7 @@ void init_statemachine() {
 state_t get_current_state() { return current_state; }
 
 bool can_transition_to_state(state_t new_state) {
-  switch (current_state) {
+  switch (get_current_state()) {
   case STATE_NONE:
     return new_state == STATE_WORKING || new_state == STATE_SET_WORKING ||
            new_state == STATE_RESET;
@@ -180,6 +180,9 @@ bool transition_to_state_isr(state_t new_state, bool *higherPriorityTaskWoken) {
 
 int do_transition_to_state(state_t new_state) {
   if (can_transition_to_state(new_state)) {
+    ESP_LOGI("DO_TRANS", "current_state pre: %s (%d)",
+             get_state_name(get_current_state()), get_current_state());
+
     bool called_by_current_task =
         xTaskGetCurrentTaskHandle() == task_func_handles[current_state];
 
@@ -195,6 +198,9 @@ int do_transition_to_state(state_t new_state) {
     buttons_register(new_state);
     vTaskResume(task_func_handles[new_state]);
 
+    ESP_LOGI("DO_TRANS", "current_state post: %s (%d)",
+             get_state_name(get_current_state()), get_current_state());
+
     if (called_by_current_task) {
       vTaskSuspend(NULL);
     }
@@ -208,7 +214,14 @@ void task_statemachine(void *pvParameters) {
   uint32_t pulNotificationValue;
   for (;;) {
     if (pdPASS == xTaskNotifyWait(0, 0, &pulNotificationValue, portMAX_DELAY)) {
-      ESP_ERROR_CHECK(do_transition_to_state((state_t)pulNotificationValue));
+      int result = do_transition_to_state((state_t)pulNotificationValue);
+      if (result != 0) {
+        ESP_LOGE("STATEMACHINE", "Failed to transition from %s (%d) to %s (%d)",
+                 get_state_name(get_current_state()), get_current_state(),
+                 get_state_name((state_t)pulNotificationValue),
+                 (state_t)pulNotificationValue);
+      }
+      ESP_ERROR_CHECK(result);
     }
   }
 }

@@ -39,6 +39,8 @@ typedef enum {
   STATE_MAX,
 } state_t;
 
+extern state_t current_state;
+
 void init_statemachine();
 
 state_t get_current_state();

@@ -31,6 +31,11 @@ extern "C" {
 
 extern portMUX_TYPE app_spinlock;
 
+typedef enum {
+  COUNT_DIRECTION_DOWN = 0,
+  COUNT_DIRECTION_UP,
+} count_direction_t;
+
 typedef struct {
 } config_none_t;
 
@@ -39,6 +44,7 @@ extern config_none_t config_none;
 typedef struct {
   gptimer_handle_t timer_handle;
   struct timespec timer_duration;
+  count_direction_t count_direction;
 } config_work_t;
 
 extern config_work_t config_work;
@@ -46,6 +52,7 @@ extern config_work_t config_work;
 typedef struct {
   gptimer_handle_t timer_handle;
   struct timespec timer_duration;
+  count_direction_t count_direction;
 } config_rest_t;
 
 extern config_rest_t config_rest;
