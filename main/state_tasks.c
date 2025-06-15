@@ -20,6 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "driver/gptimer.h"
 #include "esp_err.h"
 #include "freertos/idf_additions.h"
+#include "freertos/projdefs.h"
 #include "statemachine.h"
 #include "wrapper_7seg.h"
 #include <stdint.h>
@@ -45,6 +46,7 @@ static uint16_t get_remaining_minutes(gptimer_handle_t timer) {
 }
 
 void task_state_none(void *pvParameters) {
+  vTaskDelay(pdMS_TO_TICKS(500));
   for (;;) {
     // Display working timer config duration (in minutes) on 7-segment display
     uint16_t minutes = config_work.timer_duration.tv_sec / 60;

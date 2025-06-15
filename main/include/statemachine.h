@@ -19,27 +19,39 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "freertos/idf_additions.h"
 #include "iot_button.h"
 #include "portmacro.h"
+#include <stdint.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #include <stdbool.h>
 
-typedef enum {
-  STATE_NONE = 0,
-  STATE_WORKING,
-  STATE_RESTING,
-  STATE_PAUSED_WORKING,
-  STATE_PAUSED_RESTING,
-  STATE_FINISHED_WORKING,
-  STATE_FINISHED_RESTING,
-  STATE_SET_WORKING,
-  STATE_SET_RESTING,
-  STATE_RESET,
-  STATE_MAX,
-} state_t;
+typedef enum : uint32_t {
+  STATE_NONE_IDX = 0,
+  STATE_WORKING_IDX,
+  STATE_RESTING_IDX,
+  STATE_PAUSED_WORKING_IDX,
+  STATE_PAUSED_RESTING_IDX,
+  STATE_FINISHED_WORKING_IDX,
+  STATE_FINISHED_RESTING_IDX,
+  STATE_SET_WORKING_IDX,
+  STATE_SET_RESTING_IDX,
+  STATE_RESET_IDX,
+  STATE_MAX_IDX,
+} state_idx_t;
 
-extern state_t current_state;
+typedef enum : uint32_t {
+  STATE_NONE = 1 << STATE_NONE_IDX,
+  STATE_WORKING = 1 << STATE_WORKING_IDX,
+  STATE_RESTING = 1 << STATE_RESTING_IDX,
+  STATE_PAUSED_WORKING = 1 << STATE_PAUSED_WORKING_IDX,
+  STATE_PAUSED_RESTING = 1 << STATE_PAUSED_RESTING_IDX,
+  STATE_FINISHED_WORKING = 1 << STATE_FINISHED_WORKING_IDX,
+  STATE_FINISHED_RESTING = 1 << STATE_FINISHED_RESTING_IDX,
+  STATE_SET_WORKING = 1 << STATE_SET_WORKING_IDX,
+  STATE_SET_RESTING = 1 << STATE_SET_RESTING_IDX,
+  STATE_RESET = 1 << STATE_RESET_IDX,
+} state_t;
 
 void init_statemachine();
 
@@ -69,6 +81,33 @@ static inline const char *get_state_name(state_t state) {
     return "RESET";
   default:
     return "UNKNOWN";
+  }
+}
+
+static inline state_idx_t get_state_idx(state_t state) {
+  switch (state) {
+  case STATE_NONE:
+    return STATE_NONE_IDX;
+  case STATE_WORKING:
+    return STATE_WORKING_IDX;
+  case STATE_RESTING:
+    return STATE_RESTING_IDX;
+  case STATE_PAUSED_WORKING:
+    return STATE_PAUSED_WORKING_IDX;
+  case STATE_PAUSED_RESTING:
+    return STATE_PAUSED_RESTING_IDX;
+  case STATE_FINISHED_WORKING:
+    return STATE_FINISHED_WORKING_IDX;
+  case STATE_FINISHED_RESTING:
+    return STATE_FINISHED_RESTING_IDX;
+  case STATE_SET_WORKING:
+    return STATE_SET_WORKING_IDX;
+  case STATE_SET_RESTING:
+    return STATE_SET_RESTING_IDX;
+  case STATE_RESET:
+    return STATE_RESET_IDX;
+  default:
+    return STATE_MAX_IDX; // Invalid state
   }
 }
 
@@ -119,6 +158,8 @@ extern void btn_minus_short_press_func(void *button_handle, void *usr_data);
 extern void btn_minus_long_press_func(void *button_handle, void *usr_data);
 extern void btn_play_short_press_func(void *button_handle, void *usr_data);
 extern void btn_play_long_press_func(void *button_handle, void *usr_data);
+
+extern TaskHandle_t task_func_handles[STATE_MAX_IDX];
 
 extern TaskHandle_t task_statemachine_handle;
 

@@ -21,6 +21,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "esp_timer.h"
 #include <string.h>
 #include <time.h>
+#include "tm1637.h"
 
 static tm1637_led_t *config_7seg;
 
@@ -48,7 +49,7 @@ static const int8_t tm1637_symbols[] = {
 static const char *TAG = "7SEG";
 static char str[] = "0000.";
 
-void init_7seg() { config_7seg = tm1637_init(GPIO_NUM_5, GPIO_NUM_18); }
+void init_7seg() { config_7seg = tm1637_init(GPIO_NUM_19, GPIO_NUM_18); }
 
 void set_number_7seg(uint16_t number) {
   static int64_t prev_time = 0;

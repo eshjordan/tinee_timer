@@ -82,12 +82,12 @@ static bool work_alarm_cb(gptimer_handle_t timer,
 void on_entry_state_working(state_t old_state) {
   ESP_DRAM_LOGI(TAG, "State: WORKING");
 
-  if (old_state == STATE_NONE || old_state == STATE_FINISHED_RESTING) {
+  if (old_state & STATE_NONE || old_state & STATE_FINISHED_RESTING) {
     // Start working timer
     setup_alarm_timer(&config_work.timer_handle, config_work.timer_duration,
                       work_alarm_cb);
 
-  } else if (old_state == STATE_PAUSED_WORKING) {
+  } else if (old_state & STATE_PAUSED_WORKING) {
     // Resume working timer
     ESP_ERROR_CHECK(gptimer_start(config_work.timer_handle));
   }
@@ -104,12 +104,12 @@ static bool rest_alarm_cb(gptimer_handle_t timer,
 void on_entry_state_resting(state_t old_state) {
   ESP_DRAM_LOGI(TAG, "State: RESTING");
 
-  if (old_state == STATE_FINISHED_WORKING) {
+  if (old_state & STATE_FINISHED_WORKING) {
     // Start resting timer
     setup_alarm_timer(&config_rest.timer_handle, config_rest.timer_duration,
                       rest_alarm_cb);
 
-  } else if (old_state == STATE_PAUSED_RESTING) {
+  } else if (old_state & STATE_PAUSED_RESTING) {
     // Resume resting timer
     ESP_ERROR_CHECK(gptimer_start(config_rest.timer_handle));
   }

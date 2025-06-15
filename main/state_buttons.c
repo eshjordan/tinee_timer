@@ -269,12 +269,16 @@ void btn_minus_short_press_func(void *button_handle, void *usr_data) {
   }
   case STATE_SET_WORKING: {
     config_work.timer_duration.tv_sec =
-        max(config_work.timer_duration.tv_sec - 60, 60);
+        config_work.timer_duration.tv_sec >= 60
+            ? max(config_work.timer_duration.tv_sec - 60, 60)
+            : 60;
     break;
   }
   case STATE_SET_RESTING: {
     config_rest.timer_duration.tv_sec =
-        max(config_rest.timer_duration.tv_sec - 60, 60);
+        config_rest.timer_duration.tv_sec >= 60
+            ? max(config_rest.timer_duration.tv_sec - 60, 60)
+            : 60;
     break;
   }
   case STATE_RESET: {
@@ -319,7 +323,9 @@ void btn_minus_long_press_func(void *button_handle, void *usr_data) {
   }
   case STATE_SET_WORKING: {
     config_work.timer_duration.tv_sec =
-        max(config_work.timer_duration.tv_sec - (10 * 60), 60);
+        config_work.timer_duration.tv_sec >= (10 * 60)
+            ? max(config_work.timer_duration.tv_sec - (10 * 60), 60)
+            : 60;
 
     button_event_t btn_plus_event = iot_button_get_event(config_io.btn_plus);
     if (BUTTON_LONG_PRESS_START == btn_plus_event ||
@@ -330,7 +336,9 @@ void btn_minus_long_press_func(void *button_handle, void *usr_data) {
   }
   case STATE_SET_RESTING: {
     config_rest.timer_duration.tv_sec =
-        max(config_rest.timer_duration.tv_sec - (10 * 60), 60);
+        config_rest.timer_duration.tv_sec >= (10 * 60)
+            ? max(config_rest.timer_duration.tv_sec - (10 * 60), 60)
+            : 60;
 
     button_event_t btn_plus_event = iot_button_get_event(config_io.btn_plus);
     if (BUTTON_LONG_PRESS_START == btn_plus_event ||

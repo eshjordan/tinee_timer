@@ -33,10 +33,10 @@ void on_exit_state_none(state_t new_state) {
 void on_exit_state_working(state_t new_state) {
   ESP_DRAM_LOGI(TAG, "State: WORKING");
 
-  if (new_state == STATE_PAUSED_WORKING) {
+  if (new_state & STATE_PAUSED_WORKING) {
     // Pause working timer
     ESP_ERROR_CHECK(gptimer_stop(config_work.timer_handle));
-  } else if (new_state == STATE_FINISHED_WORKING || new_state == STATE_RESET) {
+  } else if (new_state & STATE_FINISHED_WORKING || new_state & STATE_RESET) {
     // Stop working timer
     ESP_ERROR_CHECK(gptimer_stop(config_work.timer_handle));
     ESP_ERROR_CHECK(gptimer_disable(config_work.timer_handle));
@@ -48,10 +48,10 @@ void on_exit_state_working(state_t new_state) {
 void on_exit_state_resting(state_t new_state) {
   ESP_DRAM_LOGI(TAG, "State: RESTING");
 
-  if (new_state == STATE_PAUSED_RESTING) {
+  if (new_state & STATE_PAUSED_RESTING) {
     // Pause resting timer
     ESP_ERROR_CHECK(gptimer_stop(config_rest.timer_handle));
-  } else if (new_state == STATE_FINISHED_RESTING || new_state == STATE_RESET) {
+  } else if (new_state & STATE_FINISHED_RESTING || new_state & STATE_RESET) {
     // Stop resting timer
     ESP_ERROR_CHECK(gptimer_stop(config_rest.timer_handle));
     ESP_ERROR_CHECK(gptimer_disable(config_rest.timer_handle));
@@ -63,9 +63,9 @@ void on_exit_state_resting(state_t new_state) {
 void on_exit_state_paused_working(state_t new_state) {
   ESP_DRAM_LOGI(TAG, "State: PAUSED WORKING");
 
-  if (new_state == STATE_WORKING) {
+  if (new_state & STATE_WORKING) {
     // Do nothing
-  } else if (new_state == STATE_RESET) {
+  } else if (new_state & STATE_RESET) {
     // Stop working timer
     ESP_ERROR_CHECK(gptimer_stop(config_work.timer_handle));
     ESP_ERROR_CHECK(gptimer_disable(config_work.timer_handle));
@@ -77,9 +77,9 @@ void on_exit_state_paused_working(state_t new_state) {
 void on_exit_state_paused_resting(state_t new_state) {
   ESP_DRAM_LOGI(TAG, "State: PAUSED RESTING");
 
-  if (new_state == STATE_RESTING) {
+  if (new_state & STATE_RESTING) {
     // Do nothing
-  } else if (new_state == STATE_RESET) {
+  } else if (new_state & STATE_RESET) {
     // Stop resting timer
     ESP_ERROR_CHECK(gptimer_stop(config_rest.timer_handle));
     ESP_ERROR_CHECK(gptimer_disable(config_rest.timer_handle));
@@ -91,7 +91,7 @@ void on_exit_state_paused_resting(state_t new_state) {
 void on_exit_state_finished_working(state_t new_state) {
   ESP_DRAM_LOGI(TAG, "State: FINISHED WORKING");
 
-  if (new_state == STATE_RESTING || new_state == STATE_RESET) {
+  if (new_state & STATE_RESTING || new_state & STATE_RESET) {
     // Stop alarm, stop 5s timer
     ESP_ERROR_CHECK(gptimer_stop(config_finished_working.timer_handle));
     ESP_ERROR_CHECK(gptimer_disable(config_finished_working.timer_handle));
@@ -103,7 +103,7 @@ void on_exit_state_finished_working(state_t new_state) {
 void on_exit_state_finished_resting(state_t new_state) {
   ESP_DRAM_LOGI(TAG, "State: FINISHED RESTING");
 
-  if (new_state == STATE_WORKING || new_state == STATE_RESET) {
+  if (new_state & STATE_WORKING || new_state & STATE_RESET) {
     // Stop alarm, stop 5s timer
     ESP_ERROR_CHECK(gptimer_stop(config_finished_resting.timer_handle));
     ESP_ERROR_CHECK(gptimer_disable(config_finished_resting.timer_handle));
@@ -115,13 +115,25 @@ void on_exit_state_finished_resting(state_t new_state) {
 void on_exit_state_set_working(state_t new_state) {
   ESP_DRAM_LOGI(TAG, "State: SET WORKING");
 
-  // Do nothing
+  // Save the working timer configuration to NVM
+  nvs_handle_t timer_nvs_handle;
+  ESP_ERROR_CHECK(nvs_open("timer", NVS_READWRITE, &timer_nvs_handle));
+  ESP_ERROR_CHECK(nvs_set_blob(timer_nvs_handle, "work", &config_work,
+                               sizeof(config_work)));
+  ESP_ERROR_CHECK(nvs_commit(timer_nvs_handle));
+  nvs_close(timer_nvs_handle);
 }
 
 void on_exit_state_set_resting(state_t new_state) {
   ESP_DRAM_LOGI(TAG, "State: SET RESTING");
 
-  // Do nothing
+  // Save the resting timer configuration to NVM
+  nvs_handle_t timer_nvs_handle;
+  ESP_ERROR_CHECK(nvs_open("timer", NVS_READWRITE, &timer_nvs_handle));
+  ESP_ERROR_CHECK(nvs_set_blob(timer_nvs_handle, "rest", &config_rest,
+                               sizeof(config_rest)));
+  ESP_ERROR_CHECK(nvs_commit(timer_nvs_handle));
+  nvs_close(timer_nvs_handle);
 }
 
 void on_exit_state_reset(state_t new_state) {

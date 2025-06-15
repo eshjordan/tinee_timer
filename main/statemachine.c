@@ -22,7 +22,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "statemachine.h"
 #include <string.h>
 
-state_t current_state = STATE_RESET;
+static state_t current_state = STATE_RESET;
+
+static void set_current_state(state_t new_state) {
+  current_state = (uint32_t)(((1 << STATE_MAX_IDX) - 1) & new_state);
+}
 
 TaskHandle_t task_statemachine_handle;
 
@@ -30,7 +34,7 @@ typedef void (*on_entry_func_t)(state_t);
 typedef void (*task_func_t)(void *);
 typedef void (*on_exit_func_t)(state_t);
 
-static on_entry_func_t on_entry_funcs[STATE_MAX] = {
+static on_entry_func_t on_entry_funcs[STATE_MAX_IDX] = {
     on_entry_state_none,
     on_entry_state_working,
     on_entry_state_resting,
@@ -43,7 +47,7 @@ static on_entry_func_t on_entry_funcs[STATE_MAX] = {
     on_entry_state_reset,
 };
 
-static task_func_t task_funcs[STATE_MAX] = {
+static task_func_t task_funcs[STATE_MAX_IDX] = {
     task_state_none,
     task_state_working,
     task_state_resting,
@@ -56,11 +60,11 @@ static task_func_t task_funcs[STATE_MAX] = {
     task_state_reset,
 };
 
-static TaskHandle_t task_func_handles[STATE_MAX] = {
+TaskHandle_t task_func_handles[STATE_MAX_IDX] = {
     NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 };
 
-static on_exit_func_t on_exit_funcs[STATE_MAX] = {
+static on_exit_func_t on_exit_funcs[STATE_MAX_IDX] = {
     on_exit_state_none,
     on_exit_state_working,
     on_exit_state_resting,
@@ -83,50 +87,53 @@ void init_statemachine() {
 
   initialised = true;
 
-  current_state = STATE_RESET;
+  set_current_state(STATE_RESET);
 
   vTaskSuspendAll();
   xTaskCreate(task_statemachine, "statemachine", 2048, NULL, 1,
               &task_statemachine_handle);
-  for (int i = 0; i < STATE_MAX; i++) {
+  for (state_idx_t state_idx = 0; state_idx < STATE_MAX_IDX; state_idx++) {
     char task_name[configMAX_TASK_NAME_LEN] = "";
-    snprintf(task_name, configMAX_TASK_NAME_LEN, "%s", get_state_name(i));
-    xTaskCreate(task_funcs[i], task_name, 2048, NULL, 1, &task_func_handles[i]);
-    vTaskSuspend(task_func_handles[i]);
+    snprintf(task_name, configMAX_TASK_NAME_LEN, "%s",
+             get_state_name(1 << state_idx));
+    xTaskCreate(task_funcs[state_idx], task_name, 2048, NULL, 1,
+                &task_func_handles[state_idx]);
+    vTaskSuspend(task_func_handles[state_idx]);
   }
   xTaskResumeAll();
 
   transition_to_state(STATE_NONE);
 }
 
-state_t get_current_state() { return current_state; }
+state_t get_current_state() {
+  return (uint32_t)(((1 << STATE_MAX_IDX) - 1) & current_state);
+}
 
 bool can_transition_to_state(state_t new_state) {
   switch (get_current_state()) {
   case STATE_NONE:
-    return new_state == STATE_WORKING || new_state == STATE_SET_WORKING ||
-           new_state == STATE_RESET;
+    return new_state & STATE_WORKING || new_state & STATE_SET_WORKING ||
+           new_state & STATE_RESET;
   case STATE_WORKING:
-    return new_state == STATE_PAUSED_WORKING ||
-           new_state == STATE_FINISHED_WORKING || new_state == STATE_RESET;
+    return new_state & STATE_PAUSED_WORKING ||
+           new_state & STATE_FINISHED_WORKING || new_state & STATE_RESET;
   case STATE_PAUSED_WORKING:
-    return new_state == STATE_WORKING || new_state == STATE_RESET;
+    return new_state & STATE_WORKING || new_state & STATE_RESET;
   case STATE_FINISHED_WORKING:
-    return new_state == STATE_RESTING || new_state == STATE_RESET;
+    return new_state & STATE_RESTING || new_state & STATE_RESET;
   case STATE_RESTING:
-    return new_state == STATE_PAUSED_RESTING ||
-           new_state == STATE_FINISHED_RESTING || new_state == STATE_RESET;
+    return new_state & STATE_PAUSED_RESTING ||
+           new_state & STATE_FINISHED_RESTING || new_state & STATE_RESET;
   case STATE_PAUSED_RESTING:
-    return new_state == STATE_RESTING || new_state == STATE_RESET;
+    return new_state & STATE_RESTING || new_state & STATE_RESET;
   case STATE_FINISHED_RESTING:
-    return new_state == STATE_WORKING || new_state == STATE_RESET;
+    return new_state & STATE_WORKING || new_state & STATE_RESET;
   case STATE_SET_WORKING:
-    return new_state == STATE_SET_RESTING;
+    return new_state & STATE_SET_RESTING;
   case STATE_SET_RESTING:
-    return new_state == STATE_NONE;
+    return new_state & STATE_NONE;
   case STATE_RESET:
-    return new_state == STATE_NONE;
-  case STATE_MAX:
+    return new_state & STATE_NONE;
   default:
     return false;
   }
@@ -163,14 +170,14 @@ static void buttons_unregister(state_t state) {
 }
 
 bool transition_to_state(state_t new_state) {
-  return pdPASS == xTaskNotify(task_statemachine_handle, (uint32_t)new_state,
+  return pdPASS == xTaskNotify(task_statemachine_handle, new_state,
                                eSetValueWithoutOverwrite);
 }
 
 bool transition_to_state_isr(state_t new_state, bool *higherPriorityTaskWoken) {
   BaseType_t pxHigherPriorityTaskWoken = pdFALSE;
   BaseType_t result =
-      xTaskNotifyFromISR(task_statemachine_handle, (uint32_t)new_state,
+      xTaskNotifyFromISR(task_statemachine_handle, new_state,
                          eSetValueWithoutOverwrite, &pxHigherPriorityTaskWoken);
   if (NULL != higherPriorityTaskWoken) {
     *higherPriorityTaskWoken = (pxHigherPriorityTaskWoken == pdTRUE);
@@ -180,25 +187,28 @@ bool transition_to_state_isr(state_t new_state, bool *higherPriorityTaskWoken) {
 
 int do_transition_to_state(state_t new_state) {
   if (can_transition_to_state(new_state)) {
-    ESP_LOGI("DO_TRANS", "current_state pre: %s (%d)",
+    ESP_LOGI("DO_TRANS", "current_state pre: %s (%lu)",
              get_state_name(get_current_state()), get_current_state());
 
+    state_idx_t current_state_idx = get_state_idx(get_current_state());
     bool called_by_current_task =
-        xTaskGetCurrentTaskHandle() == task_func_handles[current_state];
+        xTaskGetCurrentTaskHandle() == task_func_handles[current_state_idx];
 
     if (!called_by_current_task) {
-      vTaskSuspend(task_func_handles[current_state]);
+      vTaskSuspend(task_func_handles[current_state_idx]);
     }
 
-    state_t old_state = current_state;
+    state_t old_state = get_current_state();
+    state_idx_t old_state_idx = get_state_idx(old_state);
+    state_idx_t new_state_idx = get_state_idx(new_state);
     buttons_unregister(old_state);
-    on_exit_funcs[old_state](new_state);
-    current_state = new_state;
-    on_entry_funcs[new_state](old_state);
+    on_exit_funcs[old_state_idx](new_state);
+    set_current_state(new_state);
+    on_entry_funcs[new_state_idx](old_state);
     buttons_register(new_state);
-    vTaskResume(task_func_handles[new_state]);
+    vTaskResume(task_func_handles[new_state_idx]);
 
-    ESP_LOGI("DO_TRANS", "current_state post: %s (%d)",
+    ESP_LOGI("DO_TRANS", "current_state post: %s (%lu)",
              get_state_name(get_current_state()), get_current_state());
 
     if (called_by_current_task) {
@@ -211,12 +221,15 @@ int do_transition_to_state(state_t new_state) {
 }
 
 void task_statemachine(void *pvParameters) {
-  uint32_t pulNotificationValue;
+  uint32_t pulNotificationValue = 0;
   for (;;) {
-    if (pdPASS == xTaskNotifyWait(0, 0, &pulNotificationValue, portMAX_DELAY)) {
-      int result = do_transition_to_state((state_t)pulNotificationValue);
+    if (pdPASS ==
+        xTaskNotifyWait(0, ULONG_MAX, &pulNotificationValue, portMAX_DELAY)) {
+      pulNotificationValue &= ((1 << STATE_MAX_IDX) - 1);
+      int result = do_transition_to_state(pulNotificationValue);
       if (result != 0) {
-        ESP_LOGE("STATEMACHINE", "Failed to transition from %s (%d) to %s (%d)",
+        ESP_LOGE("STATEMACHINE",
+                 "Failed to transition from %s (%lu) to %s (%lu)",
                  get_state_name(get_current_state()), get_current_state(),
                  get_state_name((state_t)pulNotificationValue),
                  (state_t)pulNotificationValue);

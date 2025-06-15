@@ -20,6 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "button_types.h"
 #include "esp_log_level.h"
+#include "nvs.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -94,6 +95,8 @@ typedef struct {
 } config_io_t;
 
 extern config_io_t config_io;
+
+extern nvs_handle_t config_timer_nvs_handle;
 
 #ifdef __cplusplus
 }
