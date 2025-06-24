@@ -7,7 +7,9 @@ idf_component_register(
         "state_buttons.c"
         "state_tasks.c"
         "statemachine.c"
-        "wrapper_7seg.c"
+        "wrapper_tm1637.cpp"
+        "TM1637Display.cpp"
+        # "wrapper_7seg.c"
     INCLUDE_DIRS
         "."
         "include"
