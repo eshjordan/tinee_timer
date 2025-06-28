@@ -14,6 +14,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "alarm.h"
 #include "freertos/FreeRTOS.h"
 
 #include "config.h"
@@ -28,8 +29,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 static const char *TAG = "STATE BUTTONS";
 
 void btn_mode_short_press_func(void *button_handle, void *usr_data) {
-  state_t state = (state_t)usr_data;
+  state_t state = get_current_state();
   ESP_LOGI(TAG, "Button MODE short press: %s", get_state_name(state));
+
+  // Beep
+  xTaskNotify(task_alarm_handle, ALARM_BEEP, eSetValueWithOverwrite);
 
   bool yield = false;
   switch (state) {
@@ -77,8 +81,11 @@ void btn_mode_short_press_func(void *button_handle, void *usr_data) {
 }
 
 void btn_mode_long_press_func(void *button_handle, void *usr_data) {
-  state_t state = (state_t)usr_data;
+  state_t state = get_current_state();
   ESP_LOGI(TAG, "Button MODE long press: %s", get_state_name(state));
+
+  // Beep
+  xTaskNotify(task_alarm_handle, ALARM_BEEP, eSetValueWithOverwrite);
 
   bool yield = false;
   switch (state) {
@@ -129,8 +136,11 @@ void btn_mode_long_press_func(void *button_handle, void *usr_data) {
 }
 
 void btn_plus_short_press_func(void *button_handle, void *usr_data) {
-  state_t state = (state_t)usr_data;
+  state_t state = get_current_state();
   ESP_LOGI(TAG, "Button PLUS short press: %s", get_state_name(state));
+
+  // Beep
+  xTaskNotify(task_alarm_handle, ALARM_BEEP, eSetValueWithOverwrite);
 
   bool yield = false;
   switch (state) {
@@ -179,8 +189,11 @@ void btn_plus_short_press_func(void *button_handle, void *usr_data) {
 }
 
 void btn_plus_long_press_func(void *button_handle, void *usr_data) {
-  state_t state = (state_t)usr_data;
+  state_t state = get_current_state();
   ESP_LOGI(TAG, "Button PLUS long press: %s", get_state_name(state));
+
+  // Beep
+  xTaskNotify(task_alarm_handle, ALARM_BEEP, eSetValueWithOverwrite);
 
   bool yield = false;
   switch (state) {
@@ -241,8 +254,11 @@ void btn_plus_long_press_func(void *button_handle, void *usr_data) {
 }
 
 void btn_minus_short_press_func(void *button_handle, void *usr_data) {
-  state_t state = (state_t)usr_data;
+  state_t state = get_current_state();
   ESP_LOGI(TAG, "Button MINUS short press: %s", get_state_name(state));
+
+  // Beep
+  xTaskNotify(task_alarm_handle, ALARM_BEEP, eSetValueWithOverwrite);
 
   bool yield = false;
   switch (state) {
@@ -295,8 +311,11 @@ void btn_minus_short_press_func(void *button_handle, void *usr_data) {
 }
 
 void btn_minus_long_press_func(void *button_handle, void *usr_data) {
-  state_t state = (state_t)usr_data;
+  state_t state = get_current_state();
   ESP_LOGI(TAG, "Button MINUS long press: %s", get_state_name(state));
+
+  // Beep
+  xTaskNotify(task_alarm_handle, ALARM_BEEP, eSetValueWithOverwrite);
 
   bool yield = false;
   switch (state) {
@@ -361,8 +380,11 @@ void btn_minus_long_press_func(void *button_handle, void *usr_data) {
 }
 
 void btn_play_short_press_func(void *button_handle, void *usr_data) {
-  state_t state = (state_t)usr_data;
+  state_t state = get_current_state();
   ESP_LOGI(TAG, "Button PLAY short press: %s", get_state_name(state));
+
+  // Beep
+  xTaskNotify(task_alarm_handle, ALARM_BEEP, eSetValueWithOverwrite);
 
   bool yield = false;
   switch (state) {
@@ -414,8 +436,11 @@ void btn_play_short_press_func(void *button_handle, void *usr_data) {
 }
 
 void btn_play_long_press_func(void *button_handle, void *usr_data) {
-  state_t state = (state_t)usr_data;
+  state_t state = get_current_state();
   ESP_LOGI(TAG, "Button PLAY long press: %s", get_state_name(state));
+
+  // Beep
+  xTaskNotify(task_alarm_handle, ALARM_BEEP, eSetValueWithOverwrite);
 
   bool yield = false;
   switch (state) {

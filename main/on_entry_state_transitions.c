@@ -16,15 +16,21 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "freertos/FreeRTOS.h"
 
+#include "alarm.h"
 #include "config.h"
 #include "driver/gptimer.h"
 #include "driver/gptimer_types.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "freertos/idf_additions.h"
 #include "statemachine.h"
 #include <time.h>
 
 static const char *TAG = "ON ENTRY";
+
+static TaskHandle_t task_alarm_work_handle = NULL;
+
+static TaskHandle_t task_alarm_rest_handle = NULL;
 
 static void setup_alarm_timer(gptimer_handle_t *timer, struct timespec duration,
                               gptimer_alarm_cb_t alarm_cb) {
@@ -142,6 +148,9 @@ void on_entry_state_finished_working(state_t old_state) {
   setup_alarm_timer(&config_finished_working.timer_handle,
                     config_finished_working.timer_duration,
                     finished_working_alarm_cb);
+
+  xTaskNotify(task_alarm_handle, ALARM_FINISHED_WORKING,
+              eSetValueWithOverwrite);
 }
 
 static bool finished_resting_alarm_cb(gptimer_handle_t timer,
@@ -159,6 +168,9 @@ void on_entry_state_finished_resting(state_t old_state) {
   setup_alarm_timer(&config_finished_resting.timer_handle,
                     config_finished_resting.timer_duration,
                     finished_resting_alarm_cb);
+
+  xTaskNotify(task_alarm_handle, ALARM_FINISHED_RESTING,
+              eSetValueWithOverwrite);
 }
 
 void on_entry_state_set_working(state_t old_state) {

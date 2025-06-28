@@ -90,7 +90,7 @@ void init_statemachine() {
   set_current_state(STATE_RESET);
 
   vTaskSuspendAll();
-  xTaskCreate(task_statemachine, "statemachine", 2048, NULL, 1,
+  xTaskCreate(task_statemachine, "statemachine", 4096, NULL, 1,
               &task_statemachine_handle);
   for (state_idx_t state_idx = 0; state_idx < STATE_MAX_IDX; state_idx++) {
     char task_name[configMAX_TASK_NAME_LEN] = "";
@@ -139,26 +139,26 @@ bool can_transition_to_state(state_t new_state) {
   }
 }
 
-static void buttons_register(state_t state) {
+static void buttons_register() {
   iot_button_register_cb(config_io.btn_mode, BUTTON_SINGLE_CLICK, NULL,
-                         btn_mode_short_press_func, (void *)state);
+                         btn_mode_short_press_func, NULL);
   iot_button_register_cb(config_io.btn_mode, BUTTON_LONG_PRESS_START, NULL,
-                         btn_mode_long_press_func, (void *)state);
+                         btn_mode_long_press_func, NULL);
   iot_button_register_cb(config_io.btn_plus, BUTTON_SINGLE_CLICK, NULL,
-                         btn_plus_short_press_func, (void *)state);
+                         btn_plus_short_press_func, NULL);
   iot_button_register_cb(config_io.btn_plus, BUTTON_LONG_PRESS_START, NULL,
-                         btn_plus_long_press_func, (void *)state);
+                         btn_plus_long_press_func, NULL);
   iot_button_register_cb(config_io.btn_minus, BUTTON_SINGLE_CLICK, NULL,
-                         btn_minus_short_press_func, (void *)state);
+                         btn_minus_short_press_func, NULL);
   iot_button_register_cb(config_io.btn_minus, BUTTON_LONG_PRESS_START, NULL,
-                         btn_minus_long_press_func, (void *)state);
+                         btn_minus_long_press_func, NULL);
   iot_button_register_cb(config_io.btn_play, BUTTON_SINGLE_CLICK, NULL,
-                         btn_play_short_press_func, (void *)state);
+                         btn_play_short_press_func, NULL);
   iot_button_register_cb(config_io.btn_play, BUTTON_LONG_PRESS_START, NULL,
-                         btn_play_long_press_func, (void *)state);
+                         btn_play_long_press_func, NULL);
 }
 
-static void buttons_unregister(state_t state) {
+static void buttons_unregister() {
   iot_button_unregister_cb(config_io.btn_mode, BUTTON_SINGLE_CLICK, NULL);
   iot_button_unregister_cb(config_io.btn_mode, BUTTON_LONG_PRESS_START, NULL);
   iot_button_unregister_cb(config_io.btn_plus, BUTTON_SINGLE_CLICK, NULL);
@@ -201,11 +201,9 @@ int do_transition_to_state(state_t new_state) {
     state_t old_state = get_current_state();
     state_idx_t old_state_idx = get_state_idx(old_state);
     state_idx_t new_state_idx = get_state_idx(new_state);
-    buttons_unregister(old_state);
     on_exit_funcs[old_state_idx](new_state);
     set_current_state(new_state);
     on_entry_funcs[new_state_idx](old_state);
-    buttons_register(new_state);
     vTaskResume(task_func_handles[new_state_idx]);
 
     ESP_LOGI("DO_TRANS", "current_state post: %s (%lu)",
@@ -222,6 +220,7 @@ int do_transition_to_state(state_t new_state) {
 
 void task_statemachine(void *pvParameters) {
   uint32_t pulNotificationValue = 0;
+  buttons_register();
   for (;;) {
     if (pdPASS ==
         xTaskNotifyWait(0, ULONG_MAX, &pulNotificationValue, portMAX_DELAY)) {
@@ -237,4 +236,5 @@ void task_statemachine(void *pvParameters) {
       ESP_ERROR_CHECK(result);
     }
   }
+  buttons_unregister();
 }

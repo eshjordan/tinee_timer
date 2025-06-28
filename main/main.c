@@ -14,19 +14,25 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "alarm.h"
 #include "bsp/esp-bsp.h"
 #include "config.h"
 #include "driver/gpio.h"
+#include "driver/ledc.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/idf_additions.h"
+#include "hal/ledc_types.h"
 #include "iot_button.h"
 #include "nvs.h"
 #include "nvs_flash.h"
+#include "portmacro.h"
+#include "soc/gpio_num.h"
 #include "statemachine.h"
-#include "tm1637.h"
 #include "wrapper_7seg.h"
 #include <stdint.h>
+#include <sys/param.h>
 
 static button_handle_t btn_array[BSP_BUTTON_NUM];
 
@@ -84,41 +90,51 @@ void io_init(void) {
     char *name;
   };
 
-  struct stored_configs something[] = {
+  struct stored_configs stored_config_list[] = {
       {&config_work, sizeof(config_work), "work"},
       {&config_rest, sizeof(config_rest), "rest"},
   };
 
-  for (size_t i = 0; i < (sizeof(something) / sizeof(something[0])); i++) {
+  for (size_t i = 0;
+       i < (sizeof(stored_config_list) / sizeof(stored_config_list[0])); i++) {
     nvs_type_t type;
-    esp_err_t found = nvs_find_key(timer_nvs_handle, something[i].name, &type);
+    esp_err_t found =
+        nvs_find_key(timer_nvs_handle, stored_config_list[i].name, &type);
     size_t length = 0;
 
     if (ESP_OK == found && NVS_TYPE_BLOB == type) {
-      ESP_ERROR_CHECK(
-          nvs_get_blob(timer_nvs_handle, something[i].name, NULL, &length));
-      if (something[i].size == length) {
+      ESP_ERROR_CHECK(nvs_get_blob(timer_nvs_handle, stored_config_list[i].name,
+                                   NULL, &length));
+      if (stored_config_list[i].size == length) {
         // Load stored config from NVS
-        ESP_ERROR_CHECK(nvs_get_blob(timer_nvs_handle, something[i].name,
-                                     something[i].ptr, &length));
-        ESP_LOGI("NVM", "Config %s loaded from NVS", something[i].name);
-        ESP_LOGI(
-            "NVM", "%s - %llu seconds", something[i].name,
-            i == 0
-                ? ((config_work_t *)something[i].ptr)->timer_duration.tv_sec
-                : ((config_rest_t *)something[i].ptr)->timer_duration.tv_sec);
+        ESP_ERROR_CHECK(nvs_get_blob(timer_nvs_handle,
+                                     stored_config_list[i].name,
+                                     stored_config_list[i].ptr, &length));
+        ESP_LOGI("NVM", "Config %s loaded from NVS",
+                 stored_config_list[i].name);
+        ESP_LOGI("NVM", "%s - %llu seconds", stored_config_list[i].name,
+                 i == 0 ? ((config_work_t *)stored_config_list[i].ptr)
+                              ->timer_duration.tv_sec
+                        : ((config_rest_t *)stored_config_list[i].ptr)
+                              ->timer_duration.tv_sec);
       }
     }
 
     if (ESP_ERR_NVS_NOT_FOUND == found || NVS_TYPE_BLOB != type ||
-        something[i].size != length) {
+        stored_config_list[i].size != length) {
       // Set default config in NVS
       ESP_LOGW("NVM", "Config %s not found or size mismatch, setting default",
-               something[i].name);
-      ESP_ERROR_CHECK(nvs_set_blob(timer_nvs_handle, something[i].name,
-                                   something[i].ptr, something[i].size));
+               stored_config_list[i].name);
+      ESP_ERROR_CHECK(nvs_set_blob(timer_nvs_handle, stored_config_list[i].name,
+                                   stored_config_list[i].ptr,
+                                   stored_config_list[i].size));
       ESP_ERROR_CHECK(nvs_commit(timer_nvs_handle));
     }
   }
   nvs_close(timer_nvs_handle);
+
+  init_alarm();
+  config_work.timer_duration.tv_sec = 3;
+  config_rest.timer_duration.tv_sec = 3;
+  // run_alarm(4, 3, 1.0, 10.0);
 }

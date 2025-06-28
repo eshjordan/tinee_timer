@@ -27,7 +27,6 @@ extern "C" {
 #endif
 
 #include "driver/gptimer_types.h"
-#include "tm1637.h"
 #include <time.h>
 
 extern portMUX_TYPE app_spinlock;

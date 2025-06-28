@@ -14,6 +14,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "esp_err.h"
 #include "freertos/FreeRTOS.h"
 
 #include "config.h"
@@ -33,12 +34,14 @@ void on_exit_state_none(state_t new_state) {
 void on_exit_state_working(state_t new_state) {
   ESP_DRAM_LOGI(TAG, "State: WORKING");
 
-  if (new_state & STATE_PAUSED_WORKING) {
+  if (new_state &
+      (STATE_FINISHED_WORKING | STATE_PAUSED_WORKING | STATE_RESET)) {
     // Pause working timer
     ESP_ERROR_CHECK(gptimer_stop(config_work.timer_handle));
-  } else if (new_state & STATE_FINISHED_WORKING || new_state & STATE_RESET) {
+  }
+
+  if (new_state & (STATE_FINISHED_WORKING | STATE_RESET)) {
     // Stop working timer
-    ESP_ERROR_CHECK(gptimer_stop(config_work.timer_handle));
     ESP_ERROR_CHECK(gptimer_disable(config_work.timer_handle));
     ESP_ERROR_CHECK(gptimer_del_timer(config_work.timer_handle));
     config_work.timer_handle = NULL;
@@ -48,12 +51,14 @@ void on_exit_state_working(state_t new_state) {
 void on_exit_state_resting(state_t new_state) {
   ESP_DRAM_LOGI(TAG, "State: RESTING");
 
-  if (new_state & STATE_PAUSED_RESTING) {
+  if (new_state &
+      (STATE_FINISHED_RESTING | STATE_PAUSED_RESTING | STATE_RESET)) {
     // Pause resting timer
     ESP_ERROR_CHECK(gptimer_stop(config_rest.timer_handle));
-  } else if (new_state & STATE_FINISHED_RESTING || new_state & STATE_RESET) {
+  }
+
+  if (new_state & (STATE_FINISHED_RESTING | STATE_RESET)) {
     // Stop resting timer
-    ESP_ERROR_CHECK(gptimer_stop(config_rest.timer_handle));
     ESP_ERROR_CHECK(gptimer_disable(config_rest.timer_handle));
     ESP_ERROR_CHECK(gptimer_del_timer(config_rest.timer_handle));
     config_rest.timer_handle = NULL;
@@ -65,9 +70,10 @@ void on_exit_state_paused_working(state_t new_state) {
 
   if (new_state & STATE_WORKING) {
     // Do nothing
-  } else if (new_state & STATE_RESET) {
+  }
+
+  if (new_state & STATE_RESET) {
     // Stop working timer
-    ESP_ERROR_CHECK(gptimer_stop(config_work.timer_handle));
     ESP_ERROR_CHECK(gptimer_disable(config_work.timer_handle));
     ESP_ERROR_CHECK(gptimer_del_timer(config_work.timer_handle));
     config_work.timer_handle = NULL;
@@ -79,9 +85,10 @@ void on_exit_state_paused_resting(state_t new_state) {
 
   if (new_state & STATE_RESTING) {
     // Do nothing
-  } else if (new_state & STATE_RESET) {
+  }
+
+  if (new_state & STATE_RESET) {
     // Stop resting timer
-    ESP_ERROR_CHECK(gptimer_stop(config_rest.timer_handle));
     ESP_ERROR_CHECK(gptimer_disable(config_rest.timer_handle));
     ESP_ERROR_CHECK(gptimer_del_timer(config_rest.timer_handle));
     config_rest.timer_handle = NULL;
@@ -91,8 +98,8 @@ void on_exit_state_paused_resting(state_t new_state) {
 void on_exit_state_finished_working(state_t new_state) {
   ESP_DRAM_LOGI(TAG, "State: FINISHED WORKING");
 
-  if (new_state & STATE_RESTING || new_state & STATE_RESET) {
-    // Stop alarm, stop 5s timer
+  if (new_state & (STATE_RESTING | STATE_RESET)) {
+    // Stop and disable alarm (can't determine if it was running)
     ESP_ERROR_CHECK(gptimer_stop(config_finished_working.timer_handle));
     ESP_ERROR_CHECK(gptimer_disable(config_finished_working.timer_handle));
     ESP_ERROR_CHECK(gptimer_del_timer(config_finished_working.timer_handle));
@@ -103,8 +110,7 @@ void on_exit_state_finished_working(state_t new_state) {
 void on_exit_state_finished_resting(state_t new_state) {
   ESP_DRAM_LOGI(TAG, "State: FINISHED RESTING");
 
-  if (new_state & STATE_WORKING || new_state & STATE_RESET) {
-    // Stop alarm, stop 5s timer
+  if (new_state & (STATE_WORKING | STATE_RESET)) {
     ESP_ERROR_CHECK(gptimer_stop(config_finished_resting.timer_handle));
     ESP_ERROR_CHECK(gptimer_disable(config_finished_resting.timer_handle));
     ESP_ERROR_CHECK(gptimer_del_timer(config_finished_resting.timer_handle));

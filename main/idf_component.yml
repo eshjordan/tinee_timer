@@ -14,7 +14,8 @@ dependencies:
   #   # `public` flag doesn't have an effect dependencies of the `main` component.
   #   # All dependencies of `main` are public by default.
   #   public: true
-  petrows/esp-32-tm1637:
-    # path: esp-32-tm1637
-    git: https://github.com/petrows/esp-32-tm1637.git
+  # petrows/esp-32-tm1637:
+  #   # path: esp-32-tm1637
+  #   git: https://github.com/petrows/esp-32-tm1637.git
   espressif/esp_bsp_devkit: '*'
+  espressif/pwm_audio: '>=1.1.2'
