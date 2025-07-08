@@ -93,13 +93,15 @@ static void task_alarm(void *pvParameters) {
   for (;;) {
     uint32_t notificationValue = ALARM_MAX;
     if (pdPASS ==
-        xTaskNotifyWait(0, ULONG_MAX, &notificationValue, portMAX_DELAY) && ALARM_MAX != (alarm_t)notificationValue) {
+            xTaskNotifyWait(0, ULONG_MAX, &notificationValue, portMAX_DELAY) &&
+        ALARM_MAX != (alarm_t)notificationValue) {
       alarm_config_t config = alarm_configs[(alarm_t)notificationValue];
       ESP_LOGI("ALARM",
                "Running alarm with %hu cycles, %hu beeps, "
                "cycle frequency: %.2f Hz, beep frequency: %.2f Hz, "
-               "tone frequency: %lu Hz", config.num_cycles, config.num_beeps,
-               config.cycle_freq, config.beep_freq, config.tone_freq);
+               "tone frequency: %lu Hz",
+               config.num_cycles, config.num_beeps, config.cycle_freq,
+               config.beep_freq, config.tone_freq);
       // Set the LEDC channel frequency
       ESP_ERROR_CHECK(
           ledc_set_freq(ALARM_SPEED_MODE, ALARM_TIMER, config.tone_freq));

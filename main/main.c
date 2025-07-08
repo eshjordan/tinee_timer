@@ -21,6 +21,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "driver/ledc.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "face.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/idf_additions.h"
 #include "hal/ledc_types.h"
@@ -134,6 +135,7 @@ void io_init(void) {
   nvs_close(timer_nvs_handle);
 
   init_alarm();
+  init_face();
   config_work.timer_duration.tv_sec = 3;
   config_rest.timer_duration.tv_sec = 3;
   // run_alarm(4, 3, 1.0, 10.0);

@@ -2,6 +2,7 @@ idf_component_register(
     SRCS
         "alarm.c"
         "config.c"
+        "face.c"
         "main.c"
         "on_entry_state_transitions.c"
         "on_exit_state_transitions.c"
