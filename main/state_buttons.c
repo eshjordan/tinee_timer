@@ -114,11 +114,9 @@ void btn_mode_long_press_func(void *button_handle, void *usr_data) {
   }
   case STATE_SET_WORKING: {
     config_work.count_direction ^= 1;
-    config_rest.count_direction ^= 1;
     break;
   }
   case STATE_SET_RESTING: {
-    config_work.count_direction ^= 1;
     config_rest.count_direction ^= 1;
     break;
   }
@@ -129,6 +127,16 @@ void btn_mode_long_press_func(void *button_handle, void *usr_data) {
     break;
   }
   }
+
+  // Only update the face during finished states if the count direction is the
+  // same for work and rest
+  count_direction_t intermediate_direction =
+      config_work.count_direction == config_rest.count_direction
+          ? config_work.count_direction ^ 1
+          : COUNT_DIRECTION_MAX;
+
+  config_finished_working.count_direction = intermediate_direction;
+  config_finished_resting.count_direction = intermediate_direction;
 
   if (yield) {
     taskYIELD();

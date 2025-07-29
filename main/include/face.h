@@ -16,13 +16,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include "freertos/idf_additions.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #include "freertos/FreeRTOS.h"
-#include <stdint.h>
 
 typedef struct {
   float percentage;
@@ -36,6 +34,10 @@ typedef enum {
 extern TaskHandle_t task_face_handle;
 
 void init_face();
+
+bool set_face_angle(float angle);
+
+bool set_face_angle_isr(float angle, bool *higherPriorityTaskWoken);
 
 #ifdef __cplusplus
 }

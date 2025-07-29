@@ -33,6 +33,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "statemachine.h"
 #include "wrapper_7seg.h"
 #include <stdint.h>
+#include <string.h>
 #include <sys/param.h>
 
 static button_handle_t btn_array[BSP_BUTTON_NUM];
@@ -42,11 +43,6 @@ void io_init(void);
 void app_main(void) {
   // Allow other core to finish initialization
   vTaskDelay(pdMS_TO_TICKS(100));
-
-  config_work.timer_duration.tv_sec = 1 * 60;        // 1 minute
-  config_rest.timer_duration.tv_sec = 1 * 60;        // 1 minute
-  config_finished_working.timer_duration.tv_sec = 5; // 5 seconds
-  config_finished_resting.timer_duration.tv_sec = 5; // 5 seconds
 
   io_init();
 
@@ -74,10 +70,31 @@ void io_init(void) {
   const uint8_t num_btns = (sizeof(btn_array) / sizeof(btn_array[0]));
   bsp_iot_button_create(btn_array, NULL, num_btns);
 
+  config_work.timer_duration.tv_sec = 1 * 60;         // 1 minute
+  config_work.count_direction = COUNT_DIRECTION_DOWN; // Count down
+  config_work.timer_handle = NULL;
+
+  config_rest.timer_duration.tv_sec = 1 * 60;       // 1 minute
+  config_rest.count_direction = COUNT_DIRECTION_UP; // Count up
+  config_rest.timer_handle = NULL;
+
+  config_finished_working.timer_duration.tv_sec = 5; // 5 seconds
+  config_finished_working.count_direction =
+      COUNT_DIRECTION_MAX; // Don't count up or down
+  config_finished_working.timer_handle = NULL;
+
+  config_finished_resting.timer_duration.tv_sec = 5; // 5 seconds
+  config_finished_resting.count_direction =
+      COUNT_DIRECTION_MAX; // Don't count up or down
+  config_finished_resting.timer_handle = NULL;
+
   config_io.btn_mode = btn_array[BSP_BUTTON_1];
   config_io.btn_plus = btn_array[BSP_BUTTON_2];
   config_io.btn_minus = btn_array[BSP_BUTTON_3];
   config_io.btn_play = btn_array[BSP_BUTTON_4];
+
+  config_servo.min_duty = 7.166;  // Duty cycle at 0 degrees (percentage)
+  config_servo.max_duty = 23.562; // Duty cycle at 360 degrees (percentage)
 
   init_7seg();
   // Check error
@@ -94,11 +111,12 @@ void io_init(void) {
   struct stored_configs stored_config_list[] = {
       {&config_work, sizeof(config_work), "work"},
       {&config_rest, sizeof(config_rest), "rest"},
+      {&config_servo, sizeof(config_servo), "servo"},
   };
 
   for (size_t i = 0;
        i < (sizeof(stored_config_list) / sizeof(stored_config_list[0])); i++) {
-    nvs_type_t type;
+    nvs_type_t type = 0;
     esp_err_t found =
         nvs_find_key(timer_nvs_handle, stored_config_list[i].name, &type);
     size_t length = 0;
@@ -113,11 +131,20 @@ void io_init(void) {
                                      stored_config_list[i].ptr, &length));
         ESP_LOGI("NVM", "Config %s loaded from NVS",
                  stored_config_list[i].name);
-        ESP_LOGI("NVM", "%s - %llu seconds", stored_config_list[i].name,
-                 i == 0 ? ((config_work_t *)stored_config_list[i].ptr)
-                              ->timer_duration.tv_sec
-                        : ((config_rest_t *)stored_config_list[i].ptr)
-                              ->timer_duration.tv_sec);
+
+        size_t name_len = strlen(stored_config_list[i].name);
+        bool is_work = strncmp(stored_config_list[i].name, "work",
+                               MIN(name_len, sizeof("work"))) == 0;
+        bool is_rest = strncmp(stored_config_list[i].name, "rest",
+                               MIN(name_len, sizeof("rest"))) == 0;
+
+        if (is_work || is_rest) {
+          ESP_LOGI("NVM", "%s - %llu seconds", stored_config_list[i].name,
+                   i == 0 ? ((config_work_t *)stored_config_list[i].ptr)
+                                ->timer_duration.tv_sec
+                          : ((config_rest_t *)stored_config_list[i].ptr)
+                                ->timer_duration.tv_sec);
+        }
       }
     }
 
@@ -134,9 +161,25 @@ void io_init(void) {
   }
   nvs_close(timer_nvs_handle);
 
+  // Validation
+  if (config_work.count_direction >= COUNT_DIRECTION_MAX) {
+    config_work.count_direction = COUNT_DIRECTION_DOWN;
+  }
+
+  if (config_rest.count_direction >= COUNT_DIRECTION_MAX) {
+    config_rest.count_direction = COUNT_DIRECTION_UP;
+  }
+
+  if (config_finished_working.count_direction >= COUNT_DIRECTION_MAX) {
+    config_finished_working.count_direction = COUNT_DIRECTION_MAX;
+  }
+
+  if (config_finished_resting.count_direction >= COUNT_DIRECTION_MAX) {
+    config_finished_resting.count_direction = COUNT_DIRECTION_MAX;
+  }
+
   init_alarm();
   init_face();
-  config_work.timer_duration.tv_sec = 3;
-  config_rest.timer_duration.tv_sec = 3;
-  // run_alarm(4, 3, 1.0, 10.0);
+  // config_work.timer_duration.tv_sec = 3;
+  // config_rest.timer_duration.tv_sec = 3;
 }

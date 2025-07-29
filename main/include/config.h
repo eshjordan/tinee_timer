@@ -34,6 +34,7 @@ extern portMUX_TYPE app_spinlock;
 typedef enum {
   COUNT_DIRECTION_DOWN = 0,
   COUNT_DIRECTION_UP,
+  COUNT_DIRECTION_MAX,
 } count_direction_t;
 
 typedef struct {
@@ -45,29 +46,21 @@ typedef struct {
   gptimer_handle_t timer_handle;
   struct timespec timer_duration;
   count_direction_t count_direction;
-} config_work_t;
+} config_timer_t;
+
+typedef config_timer_t config_work_t;
 
 extern config_work_t config_work;
 
-typedef struct {
-  gptimer_handle_t timer_handle;
-  struct timespec timer_duration;
-  count_direction_t count_direction;
-} config_rest_t;
+typedef config_timer_t config_rest_t;
 
 extern config_rest_t config_rest;
 
-typedef struct {
-  gptimer_handle_t timer_handle;
-  struct timespec timer_duration;
-} config_finished_working_t;
+typedef config_timer_t config_finished_working_t;
 
 extern config_finished_working_t config_finished_working;
 
-typedef struct {
-  gptimer_handle_t timer_handle;
-  struct timespec timer_duration;
-} config_finished_resting_t;
+typedef config_timer_t config_finished_resting_t;
 
 extern config_finished_resting_t config_finished_resting;
 
@@ -94,6 +87,13 @@ typedef struct {
 } config_io_t;
 
 extern config_io_t config_io;
+
+typedef struct {
+  float min_duty; // Duty cycle at 0 degrees (percentage)
+  float max_duty; // Duty cycle at 360 degrees (percentage)
+} config_servo_t;
+
+extern config_servo_t config_servo;
 
 extern nvs_handle_t config_timer_nvs_handle;
 

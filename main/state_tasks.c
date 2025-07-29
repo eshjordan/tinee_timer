@@ -14,6 +14,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include "esp_log.h"
+#include "face.h"
 #include "freertos/FreeRTOS.h"
 
 #include "config.h"
@@ -27,14 +29,22 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 static const char *TAG = "STATE TASKS";
 
-static uint16_t get_remaining_minutes(gptimer_handle_t timer) {
+static uint32_t get_remaining_seconds(gptimer_handle_t timer) {
   uint32_t resolution = 0;
   ESP_ERROR_CHECK(gptimer_get_resolution(timer, &resolution));
 
   uint64_t timer_value = 0;
   ESP_ERROR_CHECK(gptimer_get_raw_count(timer, &timer_value));
 
-  uint32_t remaining_seconds = (uint32_t)(timer_value / resolution);
+  return (uint32_t)(timer_value / resolution);
+}
+
+static uint16_t get_remaining_minutes(gptimer_handle_t timer) {
+  return get_remaining_seconds(timer) / 60;
+}
+
+static uint16_t get_remaining_minutes_ceil(gptimer_handle_t timer) {
+  uint32_t remaining_seconds = get_remaining_seconds(timer);
   uint16_t remaining_minutes = remaining_seconds / 60;
 
   // Ceiling the minutes value
@@ -45,6 +55,23 @@ static uint16_t get_remaining_minutes(gptimer_handle_t timer) {
   return remaining_minutes;
 }
 
+static void set_face_time(config_timer_t timer_config) {
+  double max_seconds = (double)timer_config.timer_duration.tv_sec;
+  double remaining_seconds =
+      (double)get_remaining_seconds(timer_config.timer_handle);
+
+  float percentage = (max_seconds - remaining_seconds) / max_seconds * 100.0;
+  float angle = (percentage / 100.0) * 360.0;
+
+  if (timer_config.count_direction == COUNT_DIRECTION_UP) {
+    angle = 360.0 - angle; // Invert angle for counting up
+  }
+
+  ESP_LOGI("TASKS", "Requesting face at %f degrees, max_secs: %lf, remaining_secs: %lf", angle, max_seconds, remaining_seconds);
+
+  ESP_ERROR_CHECK(pdPASS == set_face_angle(angle) ? ESP_OK : ESP_FAIL);
+}
+
 void task_state_none(void *pvParameters) {
   vTaskDelay(pdMS_TO_TICKS(500));
   for (;;) {
@@ -52,6 +79,8 @@ void task_state_none(void *pvParameters) {
     uint16_t minutes = config_work.timer_duration.tv_sec / 60;
 
     set_number_7seg(minutes);
+
+    ESP_ERROR_CHECK(pdPASS == set_face_angle(0.0) ? ESP_OK : ESP_FAIL);
 
     vTaskSuspend(NULL);
   }
@@ -61,9 +90,11 @@ void task_state_working(void *pvParameters) {
   for (;;) {
     // Display working timer value (in minutes) on 7-segment display
     uint16_t remaining_minutes =
-        get_remaining_minutes(config_work.timer_handle);
+        get_remaining_minutes_ceil(config_work.timer_handle);
 
     set_number_7seg(remaining_minutes);
+
+    set_face_time(config_work);
 
     vTaskDelay(pdMS_TO_TICKS(10));
   }
@@ -73,9 +104,11 @@ void task_state_resting(void *pvParameters) {
   for (;;) {
     // Display resting timer value (in minutes) on 7-segment display
     uint16_t remaining_minutes =
-        get_remaining_minutes(config_rest.timer_handle);
+        get_remaining_minutes_ceil(config_rest.timer_handle);
 
     set_number_7seg(remaining_minutes);
+
+    set_face_time(config_rest);
 
     vTaskDelay(pdMS_TO_TICKS(10));
   }
@@ -85,9 +118,11 @@ void task_state_paused_working(void *pvParameters) {
   for (;;) {
     // Flash 7-segment display with working timer value (in minutes)
     uint16_t remaining_minutes =
-        get_remaining_minutes(config_work.timer_handle);
+        get_remaining_minutes_ceil(config_work.timer_handle);
 
     set_number_7seg(remaining_minutes);
+
+    set_face_time(config_work);
 
     vTaskDelay(pdMS_TO_TICKS(500));
 
@@ -95,6 +130,8 @@ void task_state_paused_working(void *pvParameters) {
     set_segment_raw_7seg(1, 0x00);
     set_segment_raw_7seg(2, 0x00);
     set_segment_raw_7seg(3, 0x00);
+
+    set_face_time(config_work);
 
     vTaskDelay(pdMS_TO_TICKS(500));
   }
@@ -104,9 +141,11 @@ void task_state_paused_resting(void *pvParameters) {
   for (;;) {
     // Flash 7-segment display with resting timer value (in minutes)
     uint16_t remaining_minutes =
-        get_remaining_minutes(config_rest.timer_handle);
+        get_remaining_minutes_ceil(config_rest.timer_handle);
 
     set_number_7seg(remaining_minutes);
+
+    set_face_time(config_rest);
 
     vTaskDelay(pdMS_TO_TICKS(500));
 
@@ -114,6 +153,8 @@ void task_state_paused_resting(void *pvParameters) {
     set_segment_raw_7seg(1, 0x00);
     set_segment_raw_7seg(2, 0x00);
     set_segment_raw_7seg(3, 0x00);
+
+    set_face_time(config_rest);
 
     vTaskDelay(pdMS_TO_TICKS(500));
   }

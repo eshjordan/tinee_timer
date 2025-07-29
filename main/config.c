@@ -29,3 +29,4 @@ config_set_working_t config_set_working;
 config_set_resting_t config_set_resting;
 config_reset_t config_reset;
 config_io_t config_io;
+config_servo_t config_servo;
