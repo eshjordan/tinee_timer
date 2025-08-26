@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "esp_log.h"
 #include <limits.h>
 
-#define FACE_FREQUENCY (100) // Frequency in Hz.
+#define FACE_FREQUENCY (50) // Frequency in Hz.
 #define FACE_GPIO (GPIO_NUM_14)
 #define FACE_SPEED_MODE LEDC_LOW_SPEED_MODE
 #define FACE_TIMER LEDC_TIMER_1

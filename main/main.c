@@ -19,6 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "config.h"
 #include "driver/gpio.h"
 #include "driver/ledc.h"
+#include "esp_adc/adc_oneshot.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "face.h"
@@ -39,6 +40,25 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 static button_handle_t btn_array[BSP_BUTTON_NUM];
 
 void io_init(void);
+
+static adc_oneshot_unit_handle_t adc2_handle;
+void servo_tune_task(void *pvParameters) {
+  while (1) {
+    int raw_value = 0;
+    ESP_ERROR_CHECK(adc_oneshot_read(adc2_handle, ADC_CHANNEL_9, &raw_value));
+    // Convert raw value to voltage in mV
+    int millivolts =
+        raw_value * 3300 / (1 << 12); // Assuming 12-bit ADC and 3.3V reference
+    // ESP_LOGI("ADC2", "Voltage: %d mV", millivolts);
+    float percentage = ((float)millivolts / 2300.0);
+    percentage = MIN(MAX(percentage, 0.0), 1.0) * 15.0;
+    ESP_LOGI("ADC2", "Duty: %.2f%%", percentage);
+    config_servo.min_duty = percentage;
+    config_servo.max_duty = percentage;
+    set_face_angle(0.0);
+    vTaskDelay(pdMS_TO_TICKS(100));
+  }
+}
 
 void app_main(void) {
   // Allow other core to finish initialization
@@ -93,8 +113,10 @@ void io_init(void) {
   config_io.btn_minus = btn_array[BSP_BUTTON_3];
   config_io.btn_play = btn_array[BSP_BUTTON_4];
 
-  config_servo.min_duty = 7.166;  // Duty cycle at 0 degrees (percentage)
-  config_servo.max_duty = 23.562; // Duty cycle at 360 degrees (percentage)
+  // config_servo.min_duty = 7.166;  // Duty cycle at 0 degrees (percentage)
+  // config_servo.max_duty = 23.562; // Duty cycle at 360 degrees (percentage)
+  config_servo.min_duty = 2.0;  // Duty cycle at 0 degrees (percentage)
+  config_servo.max_duty = 12.5; // Duty cycle at 360 degrees (percentage)
 
   init_7seg();
   // Check error
