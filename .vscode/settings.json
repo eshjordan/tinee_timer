@@ -1,6 +1,6 @@
 {
     "C_Cpp.intelliSenseEngine": "disabled",
-    "idf.espIdfPath": "/home/jordan/esp/v5.4.1/esp-idf",
+    "idf.espIdfPath": "/home/jordan/esp/v5.5.1/esp-idf",
     "idf.pythonInstallPath": "/usr/bin/python3",
     "idf.openOcdConfigs": [
         "board/esp32-bridge.cfg"
@@ -30,4 +30,11 @@
     ],
     "editor.formatOnSave": true,
     "editor.formatOnType": true,
+    "ROS2.distro": "jazzy",
+    "python.autoComplete.extraPaths": [
+        "/opt/ros/jazzy/lib/python3.12/site-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/opt/ros/jazzy/lib/python3.12/site-packages"
+    ],
 }
