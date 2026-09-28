@@ -1,3 +1,3 @@
 Record=TopLevelDocument|FileName=tinee_timer.SchDoc
 Record=SheetSymbol|SourceDocument=tinee_timer.SchDoc|Designator=U_esp32_breakout|SchDesignator=U_esp32_breakout|FileName=esp32_breakout.SchDoc|SymbolType=Normal|RawFileName=esp32_breakout.SchDoc|DesignItemId= |SourceLibraryName= |ObjectKind=Sheet Symbol|RevisionGUID= |ItemGUID= |VaultGUID= 
-Record=SheetSymbol|SourceDocument=esp32_breakout.SchDoc|Designator=U_ESP32_DevKitC_v4|SchDesignator=U_ESP32_DevKitC_v4|FileName=ESP32_DevKitC_v4.SchDoc|SymbolType=Normal|RawFileName=ESP32_DevKitC_v4.SchDoc|DesignItemId= |SourceLibraryName= |ObjectKind=Sheet Symbol|RevisionGUID= |ItemGUID= |VaultGUID= 
+Record=SheetSymbol|SourceDocument=esp32_breakout.SchDoc|Designator=U_ESP32_DevKitC_v4_shim|SchDesignator=U_ESP32_DevKitC_v4_shim|FileName=ESP32_DevKitC_v4_shim.SchDoc|SymbolType=Normal|RawFileName=ESP32_DevKitC_v4_shim.SchDoc|DesignItemId= |SourceLibraryName= |ObjectKind=Sheet Symbol|RevisionGUID= |ItemGUID= |VaultGUID= 
