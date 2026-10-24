@@ -108,9 +108,9 @@ void io_init(void) {
       COUNT_DIRECTION_MAX; // Don't count up or down
   config_finished_resting.timer_handle = NULL;
 
-  config_io.btn_mode = btn_array[BSP_BUTTON_1];
-  config_io.btn_plus = btn_array[BSP_BUTTON_2];
-  config_io.btn_minus = btn_array[BSP_BUTTON_3];
+  config_io.btn_plus = btn_array[BSP_BUTTON_1];
+  config_io.btn_minus = btn_array[BSP_BUTTON_2];
+  config_io.btn_mode = btn_array[BSP_BUTTON_3];
   config_io.btn_play = btn_array[BSP_BUTTON_4];
 
   // config_servo.min_duty = 7.166;  // Duty cycle at 0 degrees (percentage)
